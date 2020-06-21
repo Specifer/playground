@@ -85,12 +85,19 @@ enum eMatchInfo {
 
 enum eSpecData {
     specmatch,
-    specplayer
+    specplayer    
 };
 
 
 new Matches[FC_MAX_MATCHES][eMatchInfo];
 new aSpecInfo[MAX_PLAYERS][eSpecData];
+new fighterint[MAX_PLAYERS];
+new fighterworld[MAX_PLAYERS];
+new specint[MAX_PLAYERS];
+new specworld[MAX_PLAYERS];
+new Float: SpecPos[MAX_PLAYERS][3];
+new Float: FighterPos[MAX_PLAYERS][3];
+
 
 static Float:Locations [16] [4] =
 {
@@ -716,9 +723,14 @@ CFightClub__WatchMatch(playerid, matchid)
     new locid = Matches[matchid][location];
     new vWorld = Matches[matchid][fcworld];
     new Int = Interiors[locid][0];
+ 
 
     if (LegacyIsPlayerInBombShop(playerid))
         RemovePlayerFromBombShop(playerid);
+
+    GetPlayerPos(playerid, SpecPos[playerid][0], SpecPos[playerid][1], SpecPos[playerid][2]);
+    specint[playerid] = GetPlayerInterior(playerid);  
+    specworld[playerid] = GetPlayerVirtualWorld(playerid);    
 
     SetPlayerInterior(playerid, Int); // Interior
     SetPlayerVirtualWorld(playerid, vWorld); // World
@@ -750,8 +762,9 @@ CFightClub__StopWatch(playerid)
 
     if(Player(playerid)->isConnected())
     {
-        SetPlayerInterior(playerid, 0);
-        SetPlayerVirtualWorld(playerid, 0);
+        SetPlayerInterior(playerid, specint[playerid]);
+        SetPlayerVirtualWorld(playerid, specworld[playerid]);
+        SetPlayerPos(playerid, SpecPos[playerid][0], SpecPos[playerid][1], SpecPos[playerid][2]);
         SpawnPlayer(playerid);
         IsPlayerWatchingFC[playerid] = 0;
         TogglePlayerControllable(playerid, true);
@@ -961,6 +974,10 @@ CFightClub__StartMatch(matchid)
     new Float:Ymax = Boundries[locid][2];
     new Float:Ymin = Boundries[locid][3];
 
+    GetPlayerPos(iPlayer1, FighterPos[iPlayer1][0], FighterPos[iPlayer1][1], FighterPos[iPlayer1][2]);
+    fighterworld[iPlayer1] = GetPlayerVirtualWorld(iPlayer1);
+    fighterint[iPlayer1] = GetPlayerInterior(iPlayer1);
+
     ClearPlayerMenus(iPlayer1);
     SetPlayerPos(iPlayer1, X1, Y1, Z1); // Pos 1
     SetPlayerFacingAngle(iPlayer1, Angle1); // Angle 1
@@ -973,6 +990,11 @@ CFightClub__StartMatch(matchid)
     ResetPlayerWeapons(iPlayer1); // Reset weapons
     TogglePlayerControllable(iPlayer1, 0); // Unfreeze 1
     FightClubDialog[iPlayer1] = 0; // Enables usage of dialog again
+
+    GetPlayerPos(iPlayer2, FighterPos[iPlayer2][0], FighterPos[iPlayer2][1], FighterPos[iPlayer2][2]);
+    fighterworld[iPlayer2] = GetPlayerVirtualWorld(iPlayer2);
+    fighterint[iPlayer2] = GetPlayerInterior(iPlayer2);
+
 
     ClearPlayerMenus(iPlayer2);
     SetPlayerPos(iPlayer2, X2, Y2, Z2); // Pos 2
@@ -1071,8 +1093,9 @@ CFightClub__EndMatch(matchid, deathPlayerId)
 
     if(Player(iPlayer1)->isConnected())
     {
-        SetPlayerVirtualWorld(iPlayer1, 0);
-        SetPlayerInterior(iPlayer1, 0);
+        SetPlayerPos(iPlayer1, FighterPos[iPlayer1][0], FighterPos[iPlayer1][1], FighterPos[iPlayer1][2]);
+        SetPlayerVirtualWorld(iPlayer1, fighterworld[iPlayer1]);
+        SetPlayerInterior(iPlayer1, fighterint[iPlayer1]);
         ResetWorldBounds(iPlayer1);
 
         if (iPlayer1 != deathPlayerId) {
@@ -1083,8 +1106,9 @@ CFightClub__EndMatch(matchid, deathPlayerId)
 
     if(Player(iPlayer2)->isConnected())
     {
-        SetPlayerVirtualWorld(iPlayer2, 0);
-        SetPlayerInterior(iPlayer2, 0);
+        SetPlayerPos(iPlayer2, FighterPos[iPlayer2][0], FighterPos[iPlayer2][1], FighterPos[iPlayer2][2]);
+        SetPlayerVirtualWorld(iPlayer2, fighterworld[iPlayer2]);
+        SetPlayerInterior(iPlayer2, fighterint[iPlayer2]);
         ResetWorldBounds(iPlayer2);
 
         if (iPlayer2 != deathPlayerId) {
