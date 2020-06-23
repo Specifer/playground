@@ -86,7 +86,6 @@ class PlayerFavours extends Feature {
             rotation: 276
         });
 
-
         // -----------------------------------------------------------------------------------------
         // PigBenis (https://forum.sa-mp.nl/user-7697.html)
 
