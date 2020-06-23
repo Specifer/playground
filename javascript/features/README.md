@@ -33,12 +33,13 @@ other foundational features, without circular dependencies.
 
 Feature                              | Code Health | Description
 -------------------------------------|-------------|------------------------------------------------------------------
-[AccountProvider](account_provider/) | ✔ 2020    | Provides the `Player.account` supplement, loads and saves account data.
-[Communication](communication/)      | ✔ 2020    | Provides communication abilities, chat, spam and message filters.
-[Finance](finance/)                  | ✔ 2020    | Manages player's cash, bank account balances, tax and loans.
-[Nuwani](nuwani/)                    | ✔ 2020    | Provides our ability to interact with IRC and Discord.
-[PlayerStats](player_stats/)         | ✔ 2020    | Provides the `Player.stats` supplement, tracks player metrics.
-[Settings](settings/)                | ✔ 2020    | Manages persistent settings on the server.
+[AccountProvider](account_provider/) | ✔ 2020     | Provides the `Player.account` supplement, loads and saves account data.
+[Communication](communication/)      | ✔ 2020     | Provides communication abilities, chat, spam and message filters.
+[Finance](finance/)                  | ✔ 2020     | Manages player's cash, bank account balances, tax and loans.
+[Limits](limits/)                    | ✔ 2020     | Centrally decides on limitations for various features, e.g. teleportation.
+[Nuwani](nuwani/)                    | ✔ 2020     | Provides our ability to interact with IRC and Discord.
+[PlayerStats](player_stats/)         | ✔ 2020     | Provides the `Player.stats` supplement, tracks player metrics.
+[Settings](settings/)                | ✔ 2020     | Manages persistent settings on the server.
 
 ## 2. Low-level features
 May only depend on each other and foundational features, and are expected to be depended on by
@@ -55,8 +56,8 @@ May depend on any other feature as long as there are no circular dependencies.
 Feature                                          | Code Health | Description
 -------------------------------------------------|-------------|------------------------------------------------------------------
 [Abuse](abuse/)                                  | ❓ 2020     | -
-[Account](account/)                              | ❓ 2020     | Provides account-related commands to in-game players
-[CommunicationCommands](communication_commands/) | ❓ 2020     | Provides commands related to communication, e.g. `/pm`, `/mute` etc.
+[Account](account/)                              | ✔ 2020     | Provides account-related commands to in-game players
+[CommunicationCommands](communication_commands/) | ✔ 2020     | Provides commands related to communication, e.g. `/pm`, `/mute` etc.
 [Cruise](cruise/)                                | ❓ 2020     | -
 [DeathFeed](death_feed/)                         | ❓ 2020     | -
 [DeathMatch](death_match/)                       | ❓ 2020     | -
@@ -64,7 +65,7 @@ Feature                                          | Code Health | Description
 [Derbies](derbies/)                              | ❓ 2020     | -
 [Economy](economy/)                              | ❓ 2020     | -
 [Fights](fights/)                                | ❓ 2020     | -
-[Friends](friends/)                              | ❓ 2020     | -
+[Friends](friends/)                              | ✔ 2020     | -
 [Games](games/)                                  | ❓ 2020     | Driver for all sorts of interactive games on the server.
 [Gangs](gangs/)                                  | ❓ 2020     | -
 [GangChat](gang_chat/)                           | ❓ 2020     | Extends [Gangs](gangs/) with a private communication channel.

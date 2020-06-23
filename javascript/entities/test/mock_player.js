@@ -405,7 +405,7 @@ export class MockPlayer extends Player {
     // ---------------------------------------------------------------------------------------------
 
     // Identifies the player to a fake account. The options can be specified optionally.
-    async identify({ userId = 42, vip = 0, gangId = 0, undercover = 0 } = {}) {
+    async identify({ userId = 42, level = null, vip = 0, gangId = 0, undercover = 0 } = {}) {
         let resolver = null;
 
         const observerPromise = new Promise(resolve => resolver = resolve);
@@ -414,15 +414,28 @@ export class MockPlayer extends Player {
                 server.playerManager.removeObserver(observer);
                 resolver();
             }
+
+            onPlayerModLogin(player) {
+                server.playerManager.removeObserver(observer);
+                resolver();
+            }
         };
 
         server.playerManager.addObserver(observer);
-        dispatchEvent('playerlogin', {
-            playerid: this.id,
-            userid: userId,
-            gangid: gangId,
-            undercover, vip,
-        });
+        if (undercover) {
+            dispatchEvent('playermodlogin', {
+                playerid: this.id,
+                level: level ?? Player.LEVEL_PLAYER,
+                vip
+            });
+        } else {
+            dispatchEvent('playerlogin', {
+                playerid: this.id,
+                userid: userId,
+                gangid: gangId,
+                undercover, vip,
+            });
+        }
 
         await observerPromise;
     }
@@ -490,6 +503,13 @@ export class MockPlayer extends Player {
     // Triggers an event indicating that the player died.
     die(killerPlayer = null, reason = 0) {
         dispatchEvent('playerdeath', {
+            playerid: this.id,
+            killerid: killerPlayer ? killerPlayer.id
+                                   : Player.kInvalidId,
+            reason: reason
+        });
+
+        dispatchEvent('playerresolveddeath', {
             playerid: this.id,
             killerid: killerPlayer ? killerPlayer.id
                                    : Player.kInvalidId,
