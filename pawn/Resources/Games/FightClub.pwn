@@ -1093,27 +1093,27 @@ CFightClub__EndMatch(matchid, deathPlayerId)
 
     if(Player(iPlayer1)->isConnected())
     {
-        SetPlayerPos(iPlayer1, FighterPos[iPlayer1][0], FighterPos[iPlayer1][1], FighterPos[iPlayer1][2]);
+        
         SetPlayerVirtualWorld(iPlayer1, fighterworld[iPlayer1]);
         SetPlayerInterior(iPlayer1, fighterint[iPlayer1]);
         ResetWorldBounds(iPlayer1);
 
         if (iPlayer1 != deathPlayerId) {
             SetPlayerHealth(iPlayer1, 100);
-            SpawnPlayer(iPlayer1);
+            SetPlayerPos(iPlayer1, FighterPos[iPlayer1][0], FighterPos[iPlayer1][1], FighterPos[iPlayer1][2]);
         }
     }
 
     if(Player(iPlayer2)->isConnected())
     {
-        SetPlayerPos(iPlayer2, FighterPos[iPlayer2][0], FighterPos[iPlayer2][1], FighterPos[iPlayer2][2]);
+        
         SetPlayerVirtualWorld(iPlayer2, fighterworld[iPlayer2]);
         SetPlayerInterior(iPlayer2, fighterint[iPlayer2]);
         ResetWorldBounds(iPlayer2);
 
         if (iPlayer2 != deathPlayerId) {
             SetPlayerHealth(iPlayer2, 100);
-            SpawnPlayer(iPlayer2);
+            SetPlayerPos(iPlayer2, FighterPos[iPlayer2][0], FighterPos[iPlayer2][1], FighterPos[iPlayer2][2]);
         }
     }
 
