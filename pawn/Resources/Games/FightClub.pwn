@@ -765,7 +765,6 @@ CFightClub__StopWatch(playerid)
         SetPlayerInterior(playerid, specint[playerid]);
         SetPlayerVirtualWorld(playerid, specworld[playerid]);
         SetPlayerPos(playerid, SpecPos[playerid][0], SpecPos[playerid][1], SpecPos[playerid][2]);
-        SpawnPlayer(playerid);
         IsPlayerWatchingFC[playerid] = 0;
         TogglePlayerControllable(playerid, true);
     }
