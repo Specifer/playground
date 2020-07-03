@@ -115,6 +115,12 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
         return 1;
     }
 
+    if(TogglePlayerControllable(playerid, 0) && !Player(playerid)->isAdministrator)
+    {
+        SendClientMessage(playerid,Color::Red,"* You cannot use commands when you are frozen!");
+        return 1;
+    }
+
     if(strcmp(cmd, "/fight", true) == 0)
     {
         // Prevents players from having anything to do with FightClub if they're in a minigame
@@ -499,6 +505,8 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
     // Commands for administrators:
     lvp_command(t,              1, AdministratorLevel);
     lvp_command(hasfix,         6, AdministratorLevel);
+    lvp_command(freeze,         6, AdministratorLevel);
+    lvp_command(unfreeze,       8, AdministratorLevel);
 
 #if Feature::DisableFights == 0
     lvp_command(resetfc,        7, AdministratorLevel);

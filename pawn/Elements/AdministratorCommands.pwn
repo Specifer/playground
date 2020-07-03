@@ -110,6 +110,57 @@ lvp_stopchase(playerId, params[]) {
     #pragma unused params
 }
 
+lvp_freeze(playerId, params[]) {
+     
+    new subjectId = Command->playerParameter(params, 0, playerId);
+    if (subjectId == Player::InvalidId)
+        return 1;
+
+    if (Command->parameterCount(params) == 0) {
+        SendClientMessage(playerId, Color::Information, "Usage: / [player]");
+        return 1;
+    }    
+
+    {
+        TogglePlayerControllable(subjectId, 0);
+
+        SendClientMessage(playerId, Color::Success, "Player frozen.");
+
+        format(g_message, sizeof(g_message), "%s (Id:%d) has frozen %s (Id:%d).",
+            Player(playerId)->nicknameString(), playerId, Player(subjectId)->nicknameString(), subjectId);
+        Admin(playerId, g_message);
+
+        return 1;
+    }    
+    
+}
+
+
+lvp_unfreeze(playerId, params[]) {
+     
+    new subjectId = Command->playerParameter(params, 0, playerId);
+    if (subjectId == Player::InvalidId)
+        return 1;
+
+    if (Command->parameterCount(params) == 0) {
+        SendClientMessage(playerId, Color::Information, "Usage: /unfreeze [player]");
+        return 1;
+    }    
+
+    {
+      TogglePlayerControllable(subjectId, 1);
+
+        SendClientMessage(playerId, Color::Success, "Player unfrozen.");
+
+        format(g_message, sizeof(g_message), "%s (Id:%d) has unfrozen %s (Id:%d).",
+            Player(playerId)->nicknameString(), playerId, Player(subjectId)->nicknameString(), subjectId);
+        Admin(playerId, g_message);
+
+        return 1;
+    }    
+}
+
+
 lvp_fetch(playerId, params[]) {
     if (Command->parameterCount(params) == 0) {
         SendClientMessage(playerId, Color::Information, "Usage: /fetch [player]");
@@ -493,30 +544,6 @@ lvp_p(playerId, params[]) {
         SendClientMessage(playerId, Color::Success, "Player nuked.");
 
         format(g_message, sizeof(g_message), "%s (Id:%d) has nuked %s (Id:%d).",
-            Player(playerId)->nicknameString(), playerId, Player(subjectId)->nicknameString(), subjectId);
-        Admin(playerId, g_message);
-
-        return 1;
-    }
-
-    if (!strcmp(playerParameter, "freeze", true, 6)) {
-        TogglePlayerControllable(subjectId, 0);
-
-        SendClientMessage(playerId, Color::Success, "Player frozen.");
-
-        format(g_message, sizeof(g_message), "%s (Id:%d) has frozen %s (Id:%d).",
-            Player(playerId)->nicknameString(), playerId, Player(subjectId)->nicknameString(), subjectId);
-        Admin(playerId, g_message);
-
-        return 1;
-    }
-
-    if (!strcmp(playerParameter, "unfreeze", true, 8)) {
-        TogglePlayerControllable(subjectId, 1);
-
-        SendClientMessage(playerId, Color::Success, "Player unfrozen.");
-
-        format(g_message, sizeof(g_message), "%s (Id:%d) has unfrozen %s (Id:%d).",
             Player(playerId)->nicknameString(), playerId, Player(subjectId)->nicknameString(), subjectId);
         Admin(playerId, g_message);
 
