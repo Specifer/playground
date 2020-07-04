@@ -906,7 +906,7 @@ PlayerHelp:
     if (Player(playerId)->isAdministrator() == true && tempLevel[subjectId] == 2) {
         SendClientMessage(playerId, Color::Information, " armor, burn, (un)cage, cash, (un)freeze, god,");
     } else {
-        SendClientMessage(playerId, Color::Information, " armor, burn, (un)cage, cash, deathmessage, (un)freeze, (give/take)admin, god,");
+        SendClientMessage(playerId, Color::Information, " armor, burn, (un)cage, cash, deathmessage, (give/take)admin, god,");
     }
 
     if (Player(playerId)->isAdministrator() == true) {
