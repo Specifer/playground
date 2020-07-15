@@ -115,7 +115,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
         return 1;
     }
 
-    if(TogglePlayerControllable(playerid, 0) && !Player(playerid)->isAdministrator)
+    if(TogglePlayerControllable(playerid, 0) && !Player(playerid)->isAdministrator())
     {
         SendClientMessage(playerid,Color::Red,"* You cannot use commands when you are frozen!");
         return 1;
