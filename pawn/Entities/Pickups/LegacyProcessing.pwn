@@ -142,7 +142,7 @@ LegacyOnPlayerPickUpPickup(playerid, pickupid)
 
     // Airports:
     // Quite simple how it works. When a player picks up the pickup, simply show the menu!
-    if(!g_PlayerMenu[playerid] && !IsPlayerInMinigame(playerid) && g_AirportPickup[0] && g_AirportPickup[1] && g_AirportPickup[2] && g_AirportPickup[3]) 
+    if(!g_PlayerMenu[playerid] && !IsPlayerInMinigame(playerid)) 
     {
         if (Time->currentTime() - AirTime[playerid] < 60) {
     if (pickupid == g_AirportPickup[0] || pickupid == g_AirportPickup[1] ||
