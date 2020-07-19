@@ -91,7 +91,7 @@ class CruiseCommands {
         if (cruiseLeaderId == Player::InvalidId)
             return 1;
 
-        if (cruiseLeaderId == IsPlayerNPC(cruiseLeaderId)) { 
+        if (Player(cruiseLeaderId)->isNonPlayerCharacter()) { 
             SendClientMessage(playerId, Color::Error, "You can't assign NPC's as Cruise Leader");
             return 1;
         }
