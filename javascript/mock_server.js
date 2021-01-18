@@ -5,7 +5,7 @@
 import { ActorManager } from 'entities/actor_manager.js';
 import { AreaManager } from 'entities/area_manager.js';
 import { CheckpointManager } from 'components/checkpoints/checkpoint_manager.js';
-import { CommandManager } from 'components/command_manager/command_manager.js';
+import { CommandManager } from 'components/commands/command_manager.js';
 import { DialogManager } from 'components/dialogs/dialog_manager.js';
 import { FeatureManager } from 'components/feature_manager/feature_manager.js';
 import { MapIconManager } from 'entities/map_icon_manager.js';
@@ -14,7 +14,8 @@ import { MockPickupManager } from 'entities/test/mock_pickup_manager.js';
 import { NpcManager } from 'entities/npc_manager.js';
 import { ObjectManager } from 'entities/object_manager.js';
 import { PlayerManager } from 'entities/player_manager.js';
-import { TextDrawManager } from 'components/text_draw/text_draw_manager.js';
+import { TextDrawManager as DeprecatedTextDrawManager } from 'components/text_draw/text_draw_manager.js';
+import { TextDrawManager } from 'entities/text_draw_manager.js';
 import { TextLabelManager } from 'entities/text_label_manager.js';
 import { VehicleManager } from 'entities/vehicle_manager.js';
 import { VirtualWorldManager } from 'entities/virtual_world_manager.js';
@@ -40,20 +41,37 @@ import Collectables from 'features/collectables/collectables.js';
 import Communication from 'features/communication/communication.js';
 import CommunicationCommands from 'features/communication_commands/communication_commands.js';
 import Decorations from 'features/decorations/decorations.js';
+import Derbies from 'features/derbies/derbies.js';
+import Economy from 'features/economy/economy.js';
+import Fights from 'features/fights/fights.js';
 import Finance from 'features/finance/finance.js';
+import Friends from 'features/friends/friends.js';
 import Games from 'features/games/games.js';
+import GamesDeathmatch from 'features/games_deathmatch/games_deathmatch.js';
+import GamesVehicles from 'features/games_vehicles/games_vehicles.js';
 import Gangs from 'features/gangs/gangs.js';
+import Gunther from 'features/gunther/gunther.js';
 import Haystack from 'features/haystack/haystack.js';
+import Instrumentation from 'features/instrumentation/instrumentation.js';
 import Leaderboard from 'features/leaderboard/leaderboard.js';
+import Limits from 'features/limits/limits.js';
 import { MockNuwani } from 'features/nuwani/test/mock_nuwani.js';
-import MockPlayground from 'features/playground/test/mock_playground.js';
+import NuwaniDiscord from 'features/nuwani_discord/nuwani_discord.js';
+import PirateShip from 'features/pirate_ship/pirate_ship.js';
+import PlayerColors from 'features/player_colors/player_colors.js';
 import PlayerCommands from 'features/player_commands/player_commands.js';
+import PlayerDecorations from 'features/player_decorations/player_decorations.js';
 import PlayerSettings from 'features/player_settings/player_settings.js';
 import PlayerStats from 'features/player_stats/player_stats.js';
+import Playground from 'features/playground/playground.js';
 import Punishments from 'features/punishments/punishments.js';
+import Races from 'features/races/races.js';
 import Radio from 'features/radio/radio.js';
 import ReactionTests from 'features/reaction_tests/reaction_tests.js';
+import Sampcac from 'features/sampcac/sampcac.js';
 import Settings from 'features/settings/settings.js';
+import SpawnArmour from 'features/spawn_armour/spawn_armour.js';
+import Spectate from 'features/spectate/spectate.js';
 import Streamer from 'features/streamer/streamer.js';
 import Teleportation from 'features/teleportation/teleportation.js';
 import Vehicles from 'features/vehicles/vehicles.js';
@@ -74,7 +92,7 @@ class MockServer {
         this.checkpointManager_ = new CheckpointManager(CheckpointManager.kNormalCheckpoints);
         this.dialogManager_ = new DialogManager();
         this.raceCheckpointManager_ = new CheckpointManager(CheckpointManager.kRaceCheckpoints);
-        this.textDrawManager_ = new TextDrawManager();
+        this.deprecatedTextDrawManager_ = new DeprecatedTextDrawManager();
 
         this.actorManager_ = new ActorManager(MockActor /* actorConstructor */);
         this.areaManager_ = new AreaManager(MockArea /* areaConstructor */);
@@ -82,6 +100,7 @@ class MockServer {
         this.objectManager_ = new ObjectManager(MockGameObject /* objectConstructor */);
         this.pickupManager_ = new MockPickupManager(MockPickup /* pickupConstructor */);
         this.playerManager_ = new PlayerManager(MockPlayer /* playerConstructor */);
+        this.textDrawManager_ = new TextDrawManager();
         this.textLabelManager_ = new TextLabelManager(MockTextLabel /* textLabelConstructor */);
         this.vehicleManager_ = new VehicleManager(MockVehicle /* vehicleConstructor */);
         this.virtualWorldManager_ = new VirtualWorldManager();
@@ -99,20 +118,37 @@ class MockServer {
             communication: Communication,
             communication_commands: CommunicationCommands,
             decorations: Decorations,
+            derbies: Derbies,
+            economy: Economy,
+            fights: Fights,
             finance: Finance,
+            friends: Friends,
             games: Games,
+            games_deathmatch: GamesDeathmatch,
+            games_vehicles: GamesVehicles,
             gangs: Gangs,
+            gunther: Gunther,
             haystack: Haystack,
+            instrumentation: Instrumentation,
             leaderboard: Leaderboard,
+            limits: Limits,
             nuwani: MockNuwani,
+            nuwani_discord: NuwaniDiscord,
+            pirate_ship: PirateShip,
+            player_colors: PlayerColors,
             player_commands: PlayerCommands,
+            player_decorations: PlayerDecorations,
             player_settings: PlayerSettings,
             player_stats: PlayerStats,
-            playground: MockPlayground,
+            playground: Playground,
             punishments: Punishments,
+            races: Races,
             radio: Radio,
             reaction_tests: ReactionTests,
+            sampcac: Sampcac,
             settings: Settings,
+            spawn_armour: SpawnArmour,
+            spectate: Spectate,
             streamer: Streamer,
             teleportation: Teleportation,
             vehicles: Vehicles
@@ -131,6 +167,7 @@ class MockServer {
     // be limited to foundational features that have no dependencies of their own.
     initialize() {
         this.featureManager_.loadFeature('account_provider');
+        this.featureManager_.loadFeature('player_colors');
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -143,7 +180,7 @@ class MockServer {
 
     // ---------------------------------------------------------------------------------------------
 
-    // Gets the command manager. This is a real instance.
+    // Gets the command manager which is responsible for routing player-issued commands.
     get commandManager() { return this.commandManager_; }
 
     // Gets the deferred event manager, which dispatches deferred events.
@@ -164,7 +201,7 @@ class MockServer {
     get raceCheckpointManager() { return this.raceCheckpointManager_; }
 
     // Gets the manager that's responsible for text draws.
-    get textDrawManager() { return this.textDrawManager_; }
+    get deprecatedTextDrawManager() { return this.deprecatedTextDrawManager_; }
 
     // ---------------------------------------------------------------------------------------------
 
@@ -189,6 +226,9 @@ class MockServer {
 
     // Gets the real player manager that maintains mocked players.
     get playerManager() { return this.playerManager_; }
+
+    // Gets the manager that's responsible for text draws.
+    get textDrawManager() { return this.textDrawManager_; }
 
     // Gets the real text label manager that maintains mocked text labels.
     get textLabelManager() { return this.textLabelManager_; }
@@ -215,13 +255,14 @@ class MockServer {
         this.checkpointManager_.dispose();
         this.dialogManager_.dispose();
         this.raceCheckpointManager_.dispose();
-        this.textDrawManager_.dispose();
+        this.deprecatedTextDrawManager_.dispose();
 
         await this.npcManager_.dispose();
 
         this.virtualWorldManager_.dispose();
         this.vehicleManager_.dispose();
         this.textLabelManager_.dispose();
+        this.textDrawManager_.dispose();
         this.playerManager_.dispose();
         this.pickupManager_.dispose();
         this.objectManager_.dispose();
@@ -237,7 +278,9 @@ class MockServer {
     // left-over global state. This avoids hundreds of tests from failing in succession.
     async safeDispose() {
         Player.provideSupplement('account', null);
+        Player.provideSupplement('colors', null);
         Player.provideSupplement('settings', null);
+        Player.provideSupplement('stats', null);
     }
 }
 

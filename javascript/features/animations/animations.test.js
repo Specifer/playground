@@ -2,6 +2,8 @@
 // Use of this source code is governed by the MIT license, a copy of which can
 // be found in the LICENSE file.
 
+import { messages } from 'features/animations/animations.messages.js';
+
 describe('Animations', (it, beforeEach) => {
     let gunther = null;
     let russell = null;
@@ -35,6 +37,26 @@ describe('Animations', (it, beforeEach) => {
         assert.equal(gunther.rotation, 180);
     });
 
+    it('should disallow animations when they recently shot a weapon', async (assert) => {
+        await russell.identify();
+
+        assert.equal(gunther.specialAction, Player.kSpecialActionNone);
+
+        gunther.shoot();
+
+        assert.isTrue(await russell.issueCommand('/piss Gunther'));
+        assert.equal(gunther.specialAction, Player.kSpecialActionNone);
+
+        assert.equal(russell.messages.length, 1);
+        assert.includes(russell.messages[0], `they've recently fired their weapon`);
+
+        assert.isTrue(await gunther.issueCommand('/piss'));
+        assert.equal(gunther.specialAction, Player.kSpecialActionNone);
+
+        assert.equal(gunther.messages.length, 1);
+        assert.includes(gunther.messages[0], `you've recently fired your weapon`);
+    });
+
     it('should be able to force animations on other players, with a message', async (assert) => {
         await russell.identify();
 
@@ -46,13 +68,13 @@ describe('Animations', (it, beforeEach) => {
         assert.equal(russell.specialAction, Player.kSpecialActionNone);
         assert.equal(
             russell.messages[0],
-            Message.format(Message.ANIMATIONS_EXECUTED, 'piss', gunther.name, gunther.id));
+            messages.animations_executed(null, { command: 'piss', player: gunther }));
 
         assert.equal(gunther.messages.length, 1);
         assert.equal(gunther.specialAction, Player.kSpecialActionPissing);
         assert.equal(
             gunther.messages[0],
-            Message.format(Message.ANIMATIONS_EXECUTE_BY_ADMIN, russell.name, russell.id, 'piss'));
+            messages.animations_executed_fyi(null, { command: 'piss', player: russell }));
     });
 
     it('should be able to make players dance', async (assert) => {

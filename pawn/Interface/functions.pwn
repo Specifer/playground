@@ -72,16 +72,6 @@ RemovePlayerFromAnyGame(playerId) {
     }
 #endif
 
-    if (CDerby__GetPlayerState(playerId) == DERBY_STATE_SIGNUP) {
-        CDerby__PlayerExit(playerId, SIGNOUT);
-        return 1;
-    }
-
-    if (CDerby__GetPlayerState(playerId) >= DERBY_STATE_COUNTDOWN) {
-        CDerby__PlayerExit(playerId, LEFT);
-        return 1;
-    }
-
     if (IsPlayerInMapZone(playerId)) {
         SetPlayerMapZone(playerId, -1);
         return 1;
@@ -227,8 +217,6 @@ ResetPlayerStats(playerId) {
     PlayerInfo[playerId][playerTJailSes] = 0;
     iLoan[playerId] = 0;
     isCaged[playerId] = false;
-    PlayerInfo[playerId][playerIsHidden] = false;
-    ColorManager->setPlayerMarkerHidden(playerId, false);
 #if Feature::DisableFights == 0
     CFightClub__SetKillCount(playerId, 0);
     CFightClub__SetDeathCount(playerId, 0);
@@ -281,7 +269,6 @@ ResetPlayerStats(playerId) {
     ClearPlayer(playerId);
     ResetWeaponCheatCount(playerId);
     playerArmour[playerId] = 0.0;
-    iPlayerSawnoffWeapon[playerId] = 0;
     DeliveryResetStuff(playerId);
     ResetPlayerGameStateVariables(playerId);
 
@@ -512,19 +499,6 @@ adler32(buf[]) {
     }
 
     return ((s2 << 16) + s1);
-}
-
-GetPlayerId(name[]) {
-    new length = strlen(name);
-    if (length < 3)
-        return Player::InvalidId;
-
-    for (new playerId = 0; playerId <= PlayerManager->highestPlayerId(); ++playerId) {
-        if (Player(playerId)->isConnected() == true && (strcmp(name, Player(playerId)->nicknameString(), true, length) == 0))
-            return playerId;
-    }
-
-    return Player::InvalidId;
 }
 
 IsNumeric(const string[]) {
@@ -843,7 +817,6 @@ LegacyFixPlayer(playerId) {
     g_VirtualWorld[playerId] = 0;
     PlayerHandOfGod[playerId] = 0;
     isCaged[playerId] = 0;
-    PlayerInfo[playerId][playerIsHidden] = 0;
 
 #if Feature::DisableFights == 0
     if (PlayerMatch[playerId] != -1)
@@ -901,6 +874,4 @@ TakeTempAdministratorRightsFromPlayer(playerId, bool: fromInGame = false) {
 
     if (!wasVip)
         PlayerSettings(playerId)->setTeleportationDisabled(false);
-
-    ColorManager->restorePreviousPlayerCustomColor(playerId);
 }

@@ -21,6 +21,7 @@ import { toFloat } from 'base/float.js';
 //   * Environment
 //
 //   * Interaction
+//   * Spectating
 //
 //   * Audio
 //   * Visual
@@ -57,9 +58,15 @@ export class Player extends Supplementable {
     static LEVEL_ADMINISTRATOR = 1;
     static LEVEL_MANAGEMENT = 2;
 
-    // Default value for not being in a tam = 255 
+    // Default value for not being in a team = 255 
     // https://wiki.sa-mp.com/wroot/index.php?title=SetPlayerTeam
     static kNoTeam = 255;
+
+    // Default gravity value
+    static kDefaultGravity = 0.008;
+
+    // Default lag compensation mode.
+    static kDefaultLagCompensationMode = 2;
 
     // Constants applicable to the `Player.specialAction` property.
     static kSpecialActionNone = 0;
@@ -82,6 +89,11 @@ export class Player extends Supplementable {
     static kSpecialActionCuffed = 24;  // does not work on skin 0 (CJ)
     static kSpecialActionCarry = 25;  // does not work on skin 0 (CJ)
     static kSpecialActionPissing = 68;
+
+    // Modes of spectating that players can be engaged in.
+    static kSpectateNormal = 0;
+    static kSpectateFixed = 1;
+    static kSpectateSide = 2;
 
     // Constants applicable to the `Player.state` property.
     static kStateNone = 0;
@@ -113,7 +125,9 @@ export class Player extends Supplementable {
     #serial_ = null;
     #ipAddress_ = null;
     #isNpc_ = null;
+    #version_ = null;
 
+    #attachedObjects_ = new Map();
     #selectObjectResolver_ = null;
 
     #vehicle_ = null;
@@ -138,6 +152,7 @@ export class Player extends Supplementable {
         this.#serial_ = murmur3hash(this.#gpci_ || 'npc');
         this.#ipAddress_ = pawnInvoke('GetPlayerIp', 'iS', this.#id_);
         this.#isNpc_ = !!pawnInvoke('IsPlayerNPC', 'i', this.#id_);
+        this.#version_ = this.#isNpc_ ? 'NPC' : pawnInvoke('GetPlayerVersion', 'iS', this.#id_);
     }
 
     notifyDisconnecting() { this.#connectionState_ = Player.kConnectionClosing; }
@@ -165,6 +180,8 @@ export class Player extends Supplementable {
     get gpci() { return this.#gpci_; }
   
     get serial() { return this.#serial_; }
+
+    get version() { return this.#version_; }
 
     get packetLossPercentage() {
         return toFloat(pawnInvoke('NetStats_PacketLossPercent', 'i', this.#id_))
@@ -199,7 +216,6 @@ export class Player extends Supplementable {
         wait(0).then(() => pawnInvoke('OnGiveSpawnArmour', 'i', this.#id_))
     }
 
-    // Give a player a certain weapon with ammo.
     giveWeapon(weaponId, ammo) {
         wait(0).then(() => pawnInvoke('OnGiveWeapon', 'iii', this.#id_, weaponId, ammo));
     }
@@ -208,7 +224,6 @@ export class Player extends Supplementable {
         wait(0).then(() => pawnInvoke('OnRemovePlayerWeapon', 'ii', this.#id_, weaponId));
     }
 
-    // Resets all the weapons a player has.
     resetWeapons() {
         wait(0).then(() => pawnInvoke('OnResetPlayerWeapons', 'i', this.#id_));
     }
@@ -241,8 +256,10 @@ export class Player extends Supplementable {
         pawnInvoke('SetPlayerVirtualWorld', 'ii', this.#id_, value);
     }
 
-    setPlayerBounds(maxX, minX, maxY, minY) {        
-        pawnInvoke('SetPlayerWorldBounds', 'iffff', this.#id_, maxX, minX, maxY, minY)
+    resetWorldBoundaries() { this.setWorldBoundaries(20000, -20000, 20000, -20000); }
+
+    setWorldBoundaries(maxX, minX, maxY, minY) {
+        pawnInvoke('SetPlayerWorldBounds', 'iffff', this.#id_, maxX, minX, maxY, minY);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -250,7 +267,10 @@ export class Player extends Supplementable {
     // ---------------------------------------------------------------------------------------------
 
     get color() { return Color.fromNumberRGBA(pawnInvoke('GetPlayerColor', 'i', this.#id_)); }
-    set color(value) { pawnInvoke('SetPlayerColor', 'ii', this.#id_, value.toNumberRGBA()); }
+
+    // Note: you probably want to use player.colors.XXX instead. See the PlayerColorsSupplement in
+    // //features/player_colors/player_colors_supplement.js.
+    set rawColor(value) { pawnInvoke('SetPlayerColor', 'ii', this.#id_, value.toNumberRGBA()); }
 
     get health() { return pawnInvoke('GetPlayerHealth', 'iF', this.#id_); }
     set health(value) { pawnInvoke('SetPlayerHealth', 'if', this.#id_, value); }
@@ -282,6 +302,14 @@ export class Player extends Supplementable {
 
     respawn() { pawnInvoke('SpawnPlayer', 'i', this.#id_); }
 
+    setColorForPlayer(player, color) {
+        pawnInvoke('SetPlayerMarkerForPlayer', 'iii', player.id, this.#id_, color.toNumberRGBA());
+    }
+
+    showNameTagForPlayer(player, visible) {
+        pawnInvoke('ShowPlayerNameTagForPlayer', 'iii', player.id, this.#id_, visible ? 1 : 0);
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Section: Environment
     // ---------------------------------------------------------------------------------------------
@@ -309,6 +337,38 @@ export class Player extends Supplementable {
 
     get weather() { throw new Error('Unable to get the current weather for players.'); }
     set weather(value) { pawnInvoke('SetPlayerWeather', 'ii', this.#id_, value); }
+
+    // ---------------------------------------------------------------------------------------------
+    // Section: Appearance
+    // ---------------------------------------------------------------------------------------------
+
+    attachObject(slot, modelId, bone, offset, rotation, scale, primaryColor, secondaryColor) {
+        this.#attachedObjects_.set(slot, modelId);
+        this.attachObjectInternal(
+            slot, modelId, bone, offset, rotation, scale, primaryColor, secondaryColor);
+    }
+
+    getAttachedObjects() { return this.#attachedObjects_.entries(); }
+    hasAttachedObject(slot) { return this.#attachedObjects_.has(slot); }
+
+    removeAttachedObject(slot) {
+        this.#attachedObjects_.delete(slot);
+        this.removeAttachedObjectInternal(slot);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    attachObjectInternal(
+            slot, modelId, bone, offset, rotation, scale, primaryColor, secondaryColor) {
+        pawnInvoke('SetPlayerAttachedObject', 'iiiifffffffffii', this.#id_, slot, modelId, bone,
+            offset.x, offset.y, offset.z, rotation.x, rotation.y, rotation.z, scale.x, scale.y,
+            scale.z, primaryColor ? primaryColor.toNumberRGBA() : 0,
+            secondaryColor ? secondaryColor.toNumberRGBA() : 0);
+    }
+
+    removeAttachedObjectInternal(slot) {
+        pawnInvoke('RemovePlayerAttachedObject', 'ii', this.#id_, slot);
+    }
 
     // ---------------------------------------------------------------------------------------------
     // Section: Interaction
@@ -354,8 +414,11 @@ export class Player extends Supplementable {
     }
 
     sendMessage(message, ...args) {
-        if (args.length)
+        if (typeof message === 'function') {
+            message = message(null, ...args);
+        } else if (args.length) {
             message = format(message, ...args);
+        }
 
         // Escape all percentage signs with double percentage signs, as the |message| parameter of
         // SendClientMessage is ran through vsprintf within the SA-MP server, which could crash.
@@ -371,6 +434,21 @@ export class Player extends Supplementable {
 
         pawnInvoke('GameTextForPlayer', 'isii', this.id, message, time, style);
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Section: Spectating
+    // ---------------------------------------------------------------------------------------------
+
+    spectatePlayer(player, mode = Player.kSpectateNormal) {
+        pawnInvoke('PlayerSpectateVehicle', 'iii', this.#id_, player.id, mode);
+    }
+
+    spectateVehicle(vehicle, mode = Player.kSpectateNormal) {
+        pawnInvoke('PlayerSpectateVehicle', 'iii', this.#id_, vehicle.id, mode);
+    }
+
+    get spectating() { /* this is a read-only value on the server */ }
+    set spectating(value) { pawnInvoke('TogglePlayerSpectating', 'ii', this.#id_, value ? 1 : 0); }
 
     // ---------------------------------------------------------------------------------------------
     // Section: Audio

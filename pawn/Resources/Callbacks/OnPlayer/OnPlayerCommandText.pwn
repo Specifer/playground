@@ -359,7 +359,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
         // However we don't let them know, because it's tradition.
         return 0;
     }
-    
+
     if(PlayerHandOfGod[playerid] == 1)
     {
     //  SendClientMessage(playerid, Color::Red, "Commands are temporary disabled for you!");
@@ -422,7 +422,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
 
         new notice[64];
         format(notice, sizeof(notice), "~r~~h~%s~w~ has killed themselves (~p~/kill~w~)", Player(playerid)->nicknameString());
-        NewsController->show(notice);
+        AnnounceNewsMessage(notice);
 
         return 1;
     }
@@ -453,7 +453,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
     {
         SendClientMessage(playerid,COLOR_LIGHTBLUE, "Donating to Las Venturas Playground is highly appreciated and offers a lot of");
         SendClientMessage(playerid,COLOR_LIGHTBLUE,"additional and fun features for players; from access to a VIP room, forum board,");
-        SendClientMessage(playerid,COLOR_LIGHTBLUE,"IRC channel, ingame ranks, commands and much more! Please visit https://sa-mp.nl/donate");
+        SendClientMessage(playerid,COLOR_LIGHTBLUE,"IRC channel, ingame ranks, commands and much more! Please check out /vip and visit https://sa-mp.nl/donate");
         return 1;
     }
 
@@ -476,14 +476,10 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
     lvp_command(Teles,          5, PlayerLevel);
     lvp_command(Find,           4, PlayerLevel);
     lvp_command(Has,            3, PlayerLevel);
-    lvp_command(Derby,          5, PlayerLevel);
     lvp_command(locate,         6, PlayerLevel);
     lvp_command(lyse,           4, PlayerLevel);
     lvp_command(taxi,           4, PlayerLevel);
     lvp_command(tow,            3, PlayerLevel);
-    lvp_command(slap,           4, PlayerLevel);
-    lvp_command(slapb,          5, PlayerLevel);
-    lvp_command(slapback,       8, PlayerLevel);
     lvp_command(countdown,      9, PlayerLevel);
     lvp_command(interest,       8, PlayerLevel);
     lvp_command(stats,          5, PlayerLevel);
@@ -525,33 +521,8 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
     }
 #endif
 
-    // There's plenty of people missing here?
-    if(strcmp(cmd, "/credits", true) == 0) 
-    {
-        new szVerString[128];
-        format(szVerString, 128, "Las Venturas Playground v%d.%d (build: %d, revision: %d) Credits:", Version::Major, Version::Minor, __BUILD__, __REVISION__);
-        SendClientMessage(playerid, Color::Error, szVerString);
-        SendClientMessage(playerid, Color::Success, " Developers: {CCFFFF}Russell, Peter, Kase, Jay, MrBondt, cake, thiaZ, Matthias, Xanland, TransporterX,");
-        SendClientMessage(playerid, Color::Success, " {CCFFFF}Fireburn, Wesley, JUTD, iou, tomozj, Badeend, Harry.");
-        SendClientMessage(playerid, Color::Success, " Testers & Mappers: {CCFFFF}xBlueXFoxx, [Dx]SuicidalSpree, LilBoy, Plugy, LasTRace, Maikovich, Tpimp, Epiccc, LetzFetz, Joeri, Beaner,");
-        SendClientMessage(playerid, Color::Success, " {CCFFFF}Biesmen, ZheMafo, Sadik, Rien, nielz, MacSto, Lithirm, Hitman, Halo, Gibbs, Cyrix404, Bloodster, Fuse, Darius, BRKHN, Holden.");
-        SendClientMessage(playerid, Color::Success, " Special Thanks: {CCFFFF}striker, Sophia, eF.Pedro, Pugwipe, [Griffin], Chillosophy, JUTD, theHolyCow.");
-        SendClientMessage(playerid, Color::Success, " Others: {CCFFFF}Pablo_Borsellino (pBoom), Slim.- (SF Airport), Incognito (Streamer Plugin), Y_Less (sscanf).");
-        return 1;
-    }
 
 #if Feature::DisableFights == 0
-
-    if(strcmp(cmd, "/batfight", true) == 0) 
-    {
-        if(GetPlayerInterior(playerid) != 0)
-        {
-            ShowBoxForPlayer(playerid, "You cannot use this command while you're in an interior!");
-            return 1;
-        }
-        MiniGamesSignup(playerid, STATUS_BATFIGHT);
-        return 1;
-    }
 
     if(strcmp(cmd, "/massacre", true) == 0) 
     {
@@ -589,42 +560,6 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
         return 1;
     }
 
-    if(strcmp(cmd, "/grenade", true) == 0) 
-    {
-        if(GetPlayerInterior(playerid) != 0)
-        {
-            ShowBoxForPlayer(playerid, "You cannot use this command while you're in an interior!");
-            return 1;
-        }
-
-        MiniGamesSignup(playerid, STATUS_GRENADE);
-        return 1;
-    }
-
-    if(strcmp(cmd, "/rocket", true) == 0) 
-    {
-        if(GetPlayerInterior(playerid) != 0)
-        {
-            ShowBoxForPlayer(playerid, "You cannot use this command while you're in an interior!");
-            return 1;
-        }
-
-        MiniGamesSignup(playerid, STATUS_ROCKET);
-        return 1;
-    }
-
-    if(strcmp(cmd, "/sniper", true) == 0) 
-    {
-        if(GetPlayerInterior(playerid) != 0)
-        {
-            ShowBoxForPlayer(playerid, "You cannot use this command while you're in an interior!");
-            return 1;
-        }
-
-        MiniGamesSignup(playerid, STATUS_SNIPER);
-        return 1;
-    }
-
     if (strcmp(cmd, "/shiptdm", true) == 0) 
     {
         if(GetPlayerInterior(playerid) != 0)
@@ -646,30 +581,6 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
         }
 
         MiniGamesSignup(playerid, STATUS_ISLANDDM);
-        return 1;
-    }
-
-    if(strcmp(cmd,"/minigun", true) == 0) 
-    {
-        if(GetPlayerInterior(playerid) != 0)
-        {
-            ShowBoxForPlayer(playerid, "You cannot use this command while you're in an interior!");
-            return 1;
-        }
-
-        MiniGamesSignup(playerid,STATUS_MINIGUN);
-        return 1;
-    }
-
-    if(!strcmp(cmd,"/sawnoff",true))
-    {
-        if(GetPlayerInterior(playerid) != 0)
-        {
-            ShowBoxForPlayer(playerid, "You cannot use this command while you're in an interior!");
-            return 1;
-        }
-
-        MiniGamesSignup(playerid,STATUS_SAWNOFF);
         return 1;
     }
 
@@ -833,7 +744,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
 
         format(message, sizeof(message), "~r~~h~%s~w~ has set the airport customs tax as ~y~$%d~w~ (~p~/customtax~w~)",
             Player(playerid)->nicknameString(), ctax);
-        NewsController->show(message);
+        AnnounceNewsMessage(message);
 
         g_FlagTime[playerid] = Time->currentTime();
         return 1;
@@ -950,6 +861,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
         for (new player = 0; player <= PlayerManager->highestPlayerId(); player++) {
             if (!Player(player)->isConnected()) continue;
             if (!Player(player)->isAdministrator()) continue;
+            if (IsPlayerAdmin(player)) continue;
 
             if (Player(player)->isAdministrator() && !Player(player)->isManagement())
                 format(playerLevel, sizeof(playerLevel), "Administrator");
@@ -1000,7 +912,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
             return 1;
         }
 
-        if (GetPlayerTeleportStatus(playerid, 0 /* timeLimited */) != TELEPORT_STATUS_ALLOWED) {
+        if (!CanPlayerTeleport(playerid)) {
             SendClientMessage(playerid, Color::Error, "Error: You can't use this command because you have recently been in a gun fight.");
             return 1;
         }
@@ -1032,7 +944,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
         if (position[2] > 750)
             position[2] = 750;
 
-        ReportPlayerTeleport(playerid, 0 /* timeLimited */);
+        ReportPlayerTeleport(playerid);
 
         ClearPlayerMenus(playerid);
         SetVehiclePos(vehicleId, position[0], position[1], position[2]+500);
@@ -1052,7 +964,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
             return 1;
         }
 
-        if (GetPlayerTeleportStatus(playerid, 0 /* timeLimited */) != TELEPORT_STATUS_ALLOWED) {
+        if (!CanPlayerTeleport(playerid)) {
             SendClientMessage(playerid, Color::Error, "Error: You can't use this command because you have recently been in a gun fight.");
             return 1;
         }
@@ -1081,7 +993,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
         if (position[2] > 750)
             position[2] = 750;
 
-        ReportPlayerTeleport(playerid, 0 /* timeLimited */);
+        ReportPlayerTeleport(playerid);
 
         ClearPlayerMenus(playerid);
         SetPlayerPos(playerid, position[0], position[1], position[2]+500);
@@ -1097,61 +1009,6 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
 
     if (strcmp(cmd, "/wanted", true) == 0) {
         WantedLevel__OnPlayerCommandText(playerid);
-        return 1;
-    }
-
-    if (strcmp(cmd, "/givecash", true) == 0) {
-        new subject[MAX_PLAYER_NAME+1], subjectId, amount[128];
-        subject = strtok(cmdtext, idx);
-
-        if (!strlen(subject)) {
-            SendClientMessage(playerid, Color::Information, "Usage: /givecash [player] [amount]");
-            return 1;
-        }
-
-        if (IsNumeric(subject))
-            subjectId = strval(subject);
-        else
-            subjectId = GetPlayerId(subject);
-
-        if (subjectId == Player::InvalidId || !Player(subjectId)->isConnected()) {
-            SendClientMessage(playerid, Color::Error, "Error: This player is not connected.");
-            return 1;
-        }
-
-        amount = strtok(cmdtext, idx);
-        if (!strlen(amount)) {
-            SendClientMessage(playerid, Color::Information, "Usage: /givecash [player] [amount]");
-            return 1;
-        }
-
-        if (IsPlayerInMinigame(subjectId)) {
-            SendClientMessage(playerid, Color::Error, "Error: You can't transfer money to a player who is taking part in a minigame.");
-            return 1;
-        }
-
-        new const cashAmount = strval(amount);
-        if (cashAmount <= 0) {
-            SendClientMessage(playerid, Color::Error, "Error: A minimum of $1 is required.");
-            return 1;
-        }
-
-        if (GetPlayerMoney(playerid) < cashAmount) {
-            SendClientMessage(playerid, Color::Red, "Error: Insufficient funds to carry out this transaction.");
-            return 1;
-        }
-
-        GivePlayerMoney(playerid, -cashAmount);
-        GivePlayerMoney(subjectId, cashAmount);
-
-        format(string, sizeof(string), "Success: You have sent $%s to %s (Id:%d).", formatPrice(cashAmount), Player(subjectId)->nicknameString(), subjectId);
-        SendClientMessage(playerid, Color::Success, string);
-
-        if (!PlayerSyncedData(playerid)->isolated()) {
-            format(string, sizeof(string), "Success: You have received $%s from %s (Id:%d).", formatPrice(cashAmount), Player(playerid)->nicknameString(), playerid);
-            SendClientMessage(subjectId, Color::Success, string);
-        }
-
         return 1;
     }
 

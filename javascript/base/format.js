@@ -19,11 +19,17 @@ const kNumberFormat = new Intl.NumberFormat('en-US', {
 });
 
 // Placeholder types (single characters) that expect a number value to be given.
-const kNumberPlaceholders = new Set('dfi$'.split(''));
+const kNumberPlaceholders = new Set([ 'd', 'f', 'i', '$' ]);
 
 // Regular expression used to fully understand the syntax of a placeholder.
 const kPlaceholderExpression =
-    /^(?:\{([^)]+)\})?(\+)?(0|'[^$])?(-)?(\d+)?(?:\.(\d+))?([bdfoisxX\$])/;
+    /^(?:\{(\\\}|[^\}]+)\})?(\+)?(0|'[^$])?(-)?(\d+)?(?:\.(\d+))?([bdfoisxX\$])/;
+
+// Regular expression for parsing the specifier part of a placeholder.
+const kSpecifierExpression = /^(((\d+)|([\.\w]+))(\s*,\s*)?)?((=[^\(]+\([^\)]+\)\s*)*)?$/;
+
+// Regular expression for parsing the options enclosed in a particular specifier.
+const kSpecifierOptionsExpression = /(=([^\(]+)\(([^\)]+)\))/g;
 
 // Type of substitution that represents a literal passthrough for some text.
 const kTypePassthrough = '📝';
@@ -54,7 +60,8 @@ const kTypePassthrough = '📝';
 //     1. An optional parameter index, when deriving from the regular order. These can be specified
 //        in JavaScript array-index-like syntax:
 //
-//        format('[%{1}d]', 10, 20);   -->  '[20]'
+//        format('[%{1}d]', 10, 20);                -->  '[20]'
+//        format('[%{name}s]', { name: 'Fritz' });  --> '[Fritz]'
 //
 //     2. An optional `+` sign that will force the plus sign to be displayed on numeric values,
 //        which is omitted by default.
@@ -108,6 +115,20 @@ export function format(message, ...parameters) {
             
             parameter = originalParameters[format.index];
 
+        } else if (format.hasOwnProperty('property')) {
+            if (originalParameters.length !== 1 || typeof originalParameters[0] !== 'object')
+                throw new Error(`Invalid parameter given for property substitution: "${message}".`);
+
+            parameter = originalParameters[0];
+            for (const component of format.property) {
+                if (typeof parameter !== 'object' || typeof parameter[component] === 'undefined') {
+                    throw new Error(
+                        `Invalid property path given for substitution ("${message}"): ${component}`)
+                }
+
+                parameter = parameter[component];
+            }
+
         } else if (format.type !== kTypePassthrough) {
             if (!parameters.length)
                 throw new Error(`Not enough substitution parmeters supplied: "${message}".`);
@@ -117,63 +138,74 @@ export function format(message, ...parameters) {
 
         const negative = kNumberPlaceholders.has(format.type) && parameter < 0;
 
-        let prefix = null;
         let value = null;
 
-        switch (format.type) {
-            case kTypePassthrough:
-                ropes.push(format.text);
-                break;
-            
-            case 'b':
-                value = parseInt(parameter, 10).toString(2);
-                break;
+        // If the |format| has options defined, we might have to substitute the actual value with
+        // something that the formatting rules defined, e.g. for plural rules.
+        if (format.hasOwnProperty('options')) {
+            const textualValue = String(parameter);
+            if (format.options.hasOwnProperty(textualValue))
+                value = format.options[textualValue];
+            if (format.options.hasOwnProperty('other'))
+                value = format.options.other;
+        }
 
-            case 'd':
-            case 'i':
-                value = kNumberFormat.format(parseInt(parameter, 10));
-                break;
-            
-            case 'f':
-                value = parseFloat(parameter);
-                if (Number.isNaN(value)) {
-                    value = 'NaN';
-                } else if (format.hasOwnProperty('precision')) {
-                    value = new Intl.NumberFormat('en-US', {
-                        maximumFractionDigits: format.precision
-                    }).format(value);
-                } else {
-                    value = kNumberFormat.format(value);
-                }
+        if (!value) {
+            switch (format.type) {
+                case kTypePassthrough:
+                    ropes.push(format.text);
+                    break;
 
-                break;
+                case 'b':
+                    value = parseInt(parameter, 10).toString(2);
+                    break;
 
-            case 'o':
-                value = parseInt(parameter, 10).toString(8);
-                break;
+                case 'd':
+                case 'i':
+                    value = kNumberFormat.format(parseInt(parameter, 10));
+                    break;
 
-            case 's':
-                if (format.hasOwnProperty('precision'))
-                    value = parameter.substring(0, format.precision);
-                else
-                    value = parameter;
+                case 'f':
+                    value = parseFloat(parameter);
+                    if (Number.isNaN(value)) {
+                        value = 'NaN';
+                    } else if (format.hasOwnProperty('precision')) {
+                        value = new Intl.NumberFormat('en-US', {
+                            maximumFractionDigits: format.precision
+                        }).format(value);
+                    } else {
+                        value = kNumberFormat.format(value);
+                    }
 
-                break;
-            
-            case 'x':
-                value = (parseInt(parameter, 10) >>> 0).toString(16);
-                break;
-            
-            case 'X':
-                value = (parseInt(parameter, 10) >>> 0).toString(16).toUpperCase();
-                break;
+                    break;
 
-            case '$':
-                value = kCurrencyFormat.format(parseInt(parameter, 10));
-                break;
+                case 'o':
+                    value = parseInt(parameter, 10).toString(8);
+                    break;
 
-            default:
-                throw new Error(`Invalid formatting type found: ${format.type}.`);
+                case 's':
+                    if (format.hasOwnProperty('precision'))
+                        value = parameter.substring(0, format.precision);
+                    else
+                        value = parameter;
+
+                    break;
+
+                case 'x':
+                    value = (parseInt(parameter, 10) >>> 0).toString(16);
+                    break;
+
+                case 'X':
+                    value = (parseInt(parameter, 10) >>> 0).toString(16).toUpperCase();
+                    break;
+
+                case '$':
+                    value = kCurrencyFormat.format(parseInt(parameter, 10));
+                    break;
+
+                default:
+                    throw new Error(`Invalid formatting type found: ${format.type}.`);
+            }
         }
 
         // If a |value| has been given then we're dealing with a substituted value, rather than a
@@ -271,9 +303,29 @@ export function parseMessageToFormattingList(message) {
 
         let formatting = { type: match[7] };
 
+        // The first matching value is either the index of the parameter, its name when named
+        // substitutions are used, and potentially linguistical formatting modifiers.
+        if (match[1] !== undefined) {
+            const specifierMatches = kSpecifierExpression.exec(match[1]);
+            if (!specifierMatches)
+                throw new Error(`Unparseable specifier in placeholder found: "${message}".`);
+
+            if (specifierMatches[3] !== undefined)
+                formatting.index = parseInt(specifierMatches[3], 10);
+            else if (specifierMatches[4] !== undefined)
+                formatting.property = specifierMatches[4].split('.');
+
+            if (specifierMatches[6] !== undefined) {
+                formatting.options = {};
+
+                let optionMatches = null;
+                while (optionMatches = kSpecifierOptionsExpression.exec(specifierMatches[6]))
+                    formatting.options[optionMatches[2]] = optionMatches[3];
+            }
+        }
+
         // Append each of the other parameter values in a sanitized way. These properties will be
         // absent on placeholder entries where they haven't been specified.
-        if (match[1] !== undefined) formatting.index = parseInt(match[1], 10);
         if (match[2] !== undefined) formatting.sign = true;
         if (match[3] !== undefined) formatting.padding = match[3].replace(/^[']/, '');
         if (match[4] !== undefined) formatting.leftAlign = true;

@@ -13,9 +13,10 @@ const BLUE_TEAM = 1;
 export class DeathMatchManger {
     lastQuarterUsedLocationsQueue = [];
 
-    constructor(abuse, announce) {
-        this.abuse_ = abuse;
+    constructor(announce, limits) {
         this.announce_ = announce;
+        this.limits_ = limits;
+
         this.playersInDeathMatch_ = new Map();
 
         // Stats of the player. Will not be cleared upon leaving the death match.
@@ -30,37 +31,19 @@ export class DeathMatchManger {
         this.callbacks_ = new ScopedCallbacks();
         this.callbacks_.addEventListener(
             'playerresolveddeath', DeathMatchManger.prototype.onPlayerDeath.bind(this));
-        this.callbacks_.addEventListener(
-            'playerspawn', DeathMatchManger.prototype.onPlayerSpawn.bind(this));
-        this.callbacks_.addEventListener(
-            'playerdisconnect', DeathMatchManger.prototype.onPlayerDisconnect.bind(this));
+
+        // Observes the PlayerManager, to be informed of changes in player events.
+        // Before e.g. the player has fully disconnected.
+        server.playerManager.addObserver(this);
     }
 
     // The player wants to join the death match.
     goToDmZone(player, zone) {
-        if (!DeathMatchLocation.hasLocation(zone)) {
-            player.sendMessage(Message.DEATH_MATCH_INVALID_ZONE, zone);
-            player.sendMessage(Message.DEATH_MATCH_AVAILABLE_ZONES, this.validDmZones().join(', '));
-            return;
-        }
-
-        if (player.activity !== Player.PLAYER_ACTIVITY_JS_DM_ZONE &&
-                player.activity !== Player.PLAYER_ACTIVITY_NONE) {
-            player.sendMessage(Message.DEATH_MATCH_TELEPORT_BLOCKED, "you are in another activity.");
-            return;
-        }
-
-        const teleportStatus = this.abuse_().canTeleport(player, { enforceTimeLimit: true });
         const zoneInfo = DeathMatchLocation.getById(zone);
-
-        // Bail out if the |player| is not currently allowed to teleport.
-        if (!teleportStatus.allowed) {
-            player.sendMessage(Message.DEATH_MATCH_TELEPORT_BLOCKED, teleportStatus.reason);
-            return;
-        }
-
-        this.playerTeam_.delete(player);
-        this.removeTextDrawForPlayer(player);
+    
+        this.restoreDefaultPlayerStatus(player);
+    
+        player.activity = Player.PLAYER_ACTIVITY_JS_DM_ZONE;
         this.playersInDeathMatch_.set(player, zone);
         this.playerStats_.set(player, player.stats.snapshot());
         this.setPlayerTeam(player, zone);
@@ -70,41 +53,61 @@ export class DeathMatchManger {
         if (player.syncedData.lagCompensationMode !== targetLagCompensationMode)
             player.syncedData.lagCompensationMode = targetLagCompensationMode;
 
-        this.spawnPlayer(player, zone);
-
         player.sendMessage(Message.DEATH_MATCH_INSTRUCTION_LEAVE);
         player.sendMessage(Message.DEATH_MATCH_INSTRUCTION_STATS);
-        this.announce_().announceToPlayers(Message.DEATH_MATCH_TELEPORTED, player.name, zone);
+
+        this.announce_().announceGameParticipation(
+            player, `Deathmatch ${zone}`, `deathmatch ${zone}`);
+
+        player.respawn(); // This will call onPlayerSpawn and spawn the player on the right spot.
     }
 
-    // The player decided to leave so we will make him re-spawn. The player will be killed so that 
-    // the person who last hit him will get the kill to avoid abuse.
+    // The player decided to leave so we will make them re-spawn. The player will be killed so that
+    // the person who last hit them will get the kill to avoid abuse.
     leave(player) {
-        if (!this.playersInDeathMatch_.has(player))
-            return;
+        this.restoreDefaultPlayerStatus(player);
 
-        const zone = this.playersInDeathMatch_.get(player);
-        this.playersInDeathMatch_.delete(player);
-        this.playerTeam_.delete(player);
-        player.activity = Player.PLAYER_ACTIVITY_NONE;
-        player.team = Player.kNoTeam;
+        // To avoid abuse we'll kill the player if they had recently fought.
+        const decision = this.limits_().canLeaveDeathmatchZone(player);
+        if (!decision.isApproved()) {
+            player.sendMessage(Message.DEATH_MATCH_LEAVE_KILLED, decision);
+            
+            // Manually trigger a death event, because their death should count.
+            this.onPlayerDeath({
+                playerid: player.id,
+                killerid: Player.kInvalidId,
+                reason: 0,
+            });
+        }
 
-        this.removeTextDrawForPlayer(player, zone);
-        // To avoid abuse we'll kill the player if he had recently fought and let him re-spawn that 
-        // way.
-        const teleportStatus = this.abuse_().canTeleport(player, { enforceTimeLimit: true });
-        if (!teleportStatus.allowed) {
-            player.sendMessage(Message.DEATH_MATCH_LEAVE_KILLED, teleportStatus.reason);
-            player.health = 0;
-        } else if (player.syncedData.lagCompensationMode !== 2) {
+        if (player.syncedData.lagCompensationMode !== 2) {
             player.syncedData.lagCompensationMode = 2;  // this will respawn the |player|
         } else {
             player.respawn();
         }
 
-        this.resetTeamScoreIfZoneEmpty(zone);
-
         this.showStats(player);
+    }
+
+    restoreDefaultPlayerStatus(player) {
+        if (!this.playersInDeathMatch_.has(player))
+            return;
+        
+        const zone = this.playersInDeathMatch_.get(player);
+        const location = DeathMatchLocation.getById(zone);
+
+        this.playersInDeathMatch_.delete(player);
+        this.playerTeam_.delete(player);
+        
+        player.activity = Player.PLAYER_ACTIVITY_NONE;
+        player.colors.gameColor = null;
+        player.team = Player.kNoTeam;
+
+        if(!isNaN(location.gravity)) 
+            player.gravity = Player.kDefaultGravity;
+
+        this.removeTextDrawForPlayer(player, zone);        
+        this.resetTeamScoreIfZoneEmpty(zone);
     }
 
     resetTeamScoreIfZoneEmpty(zone) {
@@ -117,10 +120,8 @@ export class DeathMatchManger {
     }
 
     showStats(player) {
-        if (!this.playerStats_.has(player)) {
-            player.sendMessage(Message.DEATH_MATCH_NO_STATS);
+        if (!this.playerStats_.has(player)) 
             return;
-        }
 
         player.sendMessage(Message.DEATH_MATCH_STATS);
 
@@ -197,11 +198,13 @@ export class DeathMatchManger {
         player.armour = location.playerArmour;
         player.weather = location.weather;
         player.time = [location.time, 0];
+        if(!isNaN(location.gravity))
+            player.gravity = location.gravity;
 
         if (this.playerTeam_.has(player)) {
             const team = this.playerTeam_.get(player).team;
 
-            wait(1).then(() => player.color = team === RED_TEAM ? Color.RED : Color.BLUE);
+            player.colors.gameColor = team === RED_TEAM ? Color.RED : Color.BLUE;
 
             if (location.noTeamDamage)
                 player.team = team;
@@ -212,7 +215,7 @@ export class DeathMatchManger {
         player.interiorId = location.interiorId;
 
         // Do it in a tiny delay to avoid the player receiving an out of bounds message.
-        wait(0).then(() => player.setPlayerBounds(location.boundaries[0], location.boundaries[1],
+        wait(0).then(() => player.setWorldBoundaries(location.boundaries[0], location.boundaries[1],
             location.boundaries[2], location.boundaries[3]));
 
         player.resetWeapons();
@@ -313,15 +316,11 @@ export class DeathMatchManger {
         textDraw.hideForPlayer(player);
     }
 
-    // When a player spawns while in the mini game we want to teleport him back.
-    onPlayerSpawn(event) {
-        const player = server.playerManager.getById(event.playerid);
-        if (!player)
-            return;  // invalid |player| given for the |event|
-
+    // When a player spawns while in the mini game we want to teleport them back.
+    onPlayerSpawn(player) {
         // The player is playing in a death match
         if (this.playersInDeathMatch_.has(player)) {
-            // Remove the player if he's not in the DM_ZONE activity
+            // Remove the player if they're not in the DM_ZONE activity
             if (player.activity !== Player.PLAYER_ACTIVITY_JS_DM_ZONE) {
                 this.playersInDeathMatch_.delete(player);
                 return;
@@ -332,18 +331,9 @@ export class DeathMatchManger {
     }
 
     // Called when a player disconnects from the server. Clears out all state for the player.
-    onPlayerDisconnect(event) {
-        const player = server.playerManager.getById(event.playerid);
-        if (!player)
-            return;  // invalid |player| given for the |event|
-
-        const zone = this.playersInDeathMatch_.get(player);
-        if (zone !== null && zone !== undefined)
-            this.resetTeamScoreIfZoneEmpty(zone);
-
-        this.playersInDeathMatch_.delete(player);
+    onPlayerDisconnect(player) {
+        this.restoreDefaultPlayerStatus(player);
         this.playerStats_.delete(player);
-        this.playerTeam_.delete(player);
     }
 
     // Returns the identifiers of all the death match locations.
@@ -351,9 +341,21 @@ export class DeathMatchManger {
         return DeathMatchLocation.getAllLocationIds();
     }
 
+    // Returns the amount of players in the |zone|
+    getPlayersInZone(zone) {
+        if(!DeathMatchLocation.hasLocation(zone))
+            throw new Error('Unknown zone: ' + zone);
+
+        return [...this.playersInDeathMatch_]
+            .filter(item => item[1] === zone)
+            .length;
+    }
+
     dispose() {
         this.callbacks_.dispose();
         this.callbacks_ = null;
+
+        server.playerManager.removeObserver(this);
 
         for(const textDraw of this.zoneTextDraws_) {
             const playersInZone = [...this.playersInDeathMatch_]

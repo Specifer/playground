@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT license, a copy of which can
 // be found in the LICENSE file.
 
-import { CommandBuilder } from 'components/command_manager/command_builder.js';
+import { CommandBuilder } from 'components/commands/command_builder.js';
 import { Feature } from 'components/feature_manager/feature.js';
 import { LeaderboardDatabase } from 'features/leaderboard/leaderboard_database.js';
 import { Menu } from 'components/menu/menu.js';
@@ -32,7 +32,8 @@ export default class Leaderboard extends Feature {
 
         // The `/top` command, which shows the server's current leaderboard.
         server.commandManager.buildCommand('top')
-            .parameters([{ name: 'view', type: CommandBuilder.WORD_PARAMETER, optional: true }])
+            .description(`Display the server's leaderboards.`)
+            .parameters([{ name: 'view', type: CommandBuilder.kTypeText, optional: true }])
             .build(Leaderboard.prototype.onLeaderboardCommand.bind(this));
     }
 
@@ -68,6 +69,10 @@ export default class Leaderboard extends Feature {
                 data = await this.getKillsLeaderboardData(settings);
                 break;
 
+            case 'reaction':
+                data = await this.getReactionTestsLeaderboardData(settings);
+                break;
+
             default:
                 return this.displayLeaderboardDialog(player);
         }
@@ -79,7 +84,7 @@ export default class Leaderboard extends Feature {
 
         for (const entry of data.leaderboard)
             dialog.addItem(...entry);
-        
+
         await dialog.displayForPlayer(player);
     }
 
@@ -236,7 +241,39 @@ export default class Leaderboard extends Feature {
             }),
         };
     }
-    
+
+    // Gets the `data` for displaying the leaderboard based on number of solved reaction tests. This
+    // does not discriminate between the different types of reaction tests that are being solved.
+    async getReactionTestsLeaderboardData(settings) {
+        const leaderboard = await this.database_.getReactionTestsLeaderboard(settings);
+        const headers = [ 'Player', 'Reaction tests', 'Reaction tests / hour' ];
+
+        return {
+            title: 'Reaction Tests Statistics',
+            headers,
+            leaderboard: leaderboard.map((result, index) => {
+                let player, tests, hourly;
+
+                // (1) Rank and player identifier
+                player = (index + 1) + '. ';
+
+                if (result.color)
+                    player += `{${result.color.toHexRGB()}}${result.nickname}`;
+                else
+                    player += result.nickname;
+
+                // (2) The number of wins, including their total number of wins.
+                tests = format('%d{9E9E9E} / %d', result.reactionTests, result.reactionTestsTotal);
+
+                // (3) Number of wins they've obtained per hour.
+                hourly = format(
+                    '%.2f{9E9E9E} / hour', result.reactionTests / (result.duration / 3600));
+
+                return [ player, tests, hourly ];
+            }),
+        };
+    }
+
     // ---------------------------------------------------------------------------------------------
 
     // Displays the leaderboard dialog, which shows an overview of all the available lists, together
@@ -257,6 +294,7 @@ export default class Leaderboard extends Feature {
             this.database_.getDamageLeaderboard(settings),
             this.database_.getGangsLeaderboard(settings),
             this.database_.getKillsLeaderboard(settings),
+            this.database_.getReactionTestsLeaderboard(settings),
         ]);
 
         const dialog = new Menu('Las Venturas Playground', [
@@ -269,7 +307,7 @@ export default class Leaderboard extends Feature {
             const label = 'Accuracy{9E9E9E} (/top accuracy)';
             const listener =
                 Leaderboard.prototype.onLeaderboardCommand.bind(this, player, 'accuracy');
-            
+
             let leader = '-';
             if (results[0].length) {
                 const topResult = results[0][0];
@@ -278,7 +316,7 @@ export default class Leaderboard extends Feature {
                     leader = `{${topResult.color.toHexRGB()}}${topResult.nickname}`;
                 else
                     leader = topResult.nickname;
-                
+
                 leader += format('{9E9E9E} (%.2f%%)', topResult.accuracy * 100);
             }
 
@@ -290,7 +328,7 @@ export default class Leaderboard extends Feature {
             const label = 'Damage{9E9E9E} (/top damage)';
             const listener =
                 Leaderboard.prototype.onLeaderboardCommand.bind(this, player, 'damage');
-            
+
             let leader = '-';
             if (results[1].length) {
                 const topResult = results[1][0];
@@ -299,7 +337,7 @@ export default class Leaderboard extends Feature {
                     leader = `{${topResult.color.toHexRGB()}}${topResult.nickname}`;
                 else
                     leader = topResult.nickname;
-                
+
                 leader += format('{9E9E9E} (%s damage)',
                     this.toFormattedQuantityUnit(topResult.damageGiven));
             }
@@ -311,7 +349,7 @@ export default class Leaderboard extends Feature {
         {
             const label = 'Gangs{9E9E9E} (/top gangs)';
             const listener = Leaderboard.prototype.onLeaderboardCommand.bind(this, player, 'gangs');
-            
+
             let leader = '-';
             if (results[2].length) {
                 const topResult = results[2][0];
@@ -320,7 +358,7 @@ export default class Leaderboard extends Feature {
                     leader = `{${topResult.color.toHexRGB()}}${topResult.name}`;
                 else
                     leader = topResult.name;
-                
+
                 leader += format('{9E9E9E} (%d kills)', topResult.killCount);
             }
 
@@ -331,7 +369,7 @@ export default class Leaderboard extends Feature {
         {
             const label = 'Kills{9E9E9E} (/top kills)';
             const listener = Leaderboard.prototype.onLeaderboardCommand.bind(this, player, 'kills');
-            
+
             let leader = '-';
             if (results[3].length) {
                 const topResult = results[3][0];
@@ -340,8 +378,29 @@ export default class Leaderboard extends Feature {
                     leader = `{${topResult.color.toHexRGB()}}${topResult.nickname}`;
                 else
                     leader = topResult.nickname;
-                
+
                 leader += format('{9E9E9E} (%d kills)', topResult.killCount);
+            }
+
+            dialog.addItem(label, leader, listener);
+        }
+
+        // (5) Reaction tests leaderboard
+        {
+            const label = 'Reaction tests{9E9E9E} (/top reaction)';
+            const listener =
+                Leaderboard.prototype.onLeaderboardCommand.bind(this, player, 'reaction');
+
+            let leader = '-';
+            if (results[4].length) {
+                const topResult = results[4][0];
+
+                if (topResult.color)
+                    leader = `{${topResult.color.toHexRGB()}}${topResult.nickname}`;
+                else
+                    leader = topResult.nickname;
+
+                leader += format('{9E9E9E} (%d reaction tests)', topResult.reactionTests);
             }
 
             dialog.addItem(label, leader, listener);

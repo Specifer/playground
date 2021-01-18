@@ -16,6 +16,8 @@ describe('format', it => {
     });
     
     it('should be able to substitute formatting parameters', assert => {
+        const gunther = server.playerManager.getById(/* Gunther= */ 0);
+
         assert.equal(format(''), '');
         assert.equal(format('Hello, world'), 'Hello, world');
         assert.equal(format('Hello, %%orld'), 'Hello, %orld');
@@ -40,6 +42,7 @@ describe('format', it => {
         assert.equal(format('[%d]', -10000), '[-10,000]');
         assert.equal(format('[%+d]', 10000), '[+10,000]');
         assert.equal(format('[%{1}d]', 10, -10), '[-10]');
+        assert.equal(format('[%{value}d]', { value: -10 }), '[-10]');
 
         // Placeholder: %f
         assert.equal(format('[%f]', 1), '[1]');
@@ -73,6 +76,7 @@ describe('format', it => {
         assert.equal(format('[%+f]', 10000.25), '[+10,000.25]');
         assert.equal(format('[%f]', -10000.56432189), '[-10,000.56]');
         assert.equal(format('[%{1}f]', 25, -10000.56432189), '[-10,000.56]');
+        assert.equal(format('[%{value}f]', { value: -10000.56432189 }), '[-10,000.56]');
 
         // Placeholder: %s
         assert.equal(format('[%s]', ''), '[]');
@@ -90,6 +94,7 @@ describe('format', it => {
         assert.equal(format(`[%'a5.3s]`, 'banana'), '[aaban]');
         assert.equal(format(`[%'a-5.3s]`, 'banana'), '[banaa]');
         assert.equal(format(`[%{1}'a-5.3s]`, 'banana', 'jip'), '[jipaa]');
+        assert.equal(format(`[%{value}'a-5.3s]`, { value: 'jip' }), '[jipaa]');
 
         // Placeholder: %x
         assert.equal(format('[%x]', 15), '[f]');
@@ -117,8 +122,27 @@ describe('format', it => {
         assert.equal(format('[%b]', 25), '[11001]');
         assert.equal(format('[%o]', 25), '[31]');
         assert.equal(format('[%X]', 16776960), '[FFFF00]');
+        assert.equal(format('[%%%s]', 25), '[%25]');
         assert.equal(format('[%s%%]', 25), '[25%]');
         assert.equal(format('[%d%d]', 1, 5), '[15]');
+
+        // Multi-parameter formats
+        assert.equal(format('%d %s', 255, 'Foo Bar'), '255 Foo Bar');
+        assert.equal(format('%{0}d %{1}s', 255, 'Foo Bar'), '255 Foo Bar');
+        assert.equal(format('%{1}d %{0}s', 'Foo Bar', 255), '255 Foo Bar');
+        assert.equal(
+            format('%{first}d %{second}s', { first: 255, second: 'Foo Bar' }), '255 Foo Bar');
+
+        // Nested parameter names
+        assert.equal(
+            format('%{player.name}s (Id:%{player.id}d)', { player: gunther }), 'Gunther (Id:0)');
+
+        // Options in formats
+        assert.equal(format('[%{=0(zero) =1(one)}d]', 0), '[zero]');
+        assert.equal(format('[%{=0(zero) =1(one)}d]', 1), '[one]');
+        assert.equal(format('[%{=0(zero) =1(one)}d]', 2), '[2]');
+        assert.equal(format('[%{=0(zero) =1(one)}d]', 1234), '[1,234]');
+        assert.equal(format('[%{=other(yes)}d]', 1), '[yes]');
     });
 
     it('it able to parse messages to formatting lists', assert => {
@@ -185,6 +209,46 @@ describe('format', it => {
                 precision: 5
             },
             { type: '📝', text: 'b' },
+        ]);
+
+        assert.deepEqual(parseMessageToFormattingList(`a %{1}s b %{0}$ c`), [
+            { type: '📝', text: 'a ' },
+            { type: 's', index: 1 },
+            { type: '📝', text: ' b ' },
+            { type: '$', index: 0 },
+            { type: '📝', text: ' c' },
+        ]);
+
+        assert.deepEqual(parseMessageToFormattingList(`a %{name}s b %{price}$ c`), [
+            { type: '📝', text: 'a ' },
+            { type: 's', property: [ 'name' ] },
+            { type: '📝', text: ' b ' },
+            { type: '$', property: [ 'price' ] },
+            { type: '📝', text: ' c' },
+        ]);
+
+        assert.deepEqual(parseMessageToFormattingList(`a %{name.sub}s b`), [
+            { type: '📝', text: 'a ' },
+            { type: 's', property: [ 'name', 'sub' ] },
+            { type: '📝', text: ' b' },
+        ]);
+
+        assert.deepEqual(parseMessageToFormattingList(`a %{name, =0(foo) =other(bar)}s b`), [
+            { type: '📝', text: 'a ' },
+            { type: 's', property: [ 'name' ], options: { '0': 'foo', 'other': 'bar' } },
+            { type: '📝', text: ' b' },
+        ]);
+
+        assert.deepEqual(parseMessageToFormattingList(`a %{1, =0(foo) =other(bar)}s b`), [
+            { type: '📝', text: 'a ' },
+            { type: 's', index: 1, options: { '0': 'foo', 'other': 'bar' } },
+            { type: '📝', text: ' b' },
+        ]);
+
+        assert.deepEqual(parseMessageToFormattingList(`a %{=0(foo) =other(bar)}s b`), [
+            { type: '📝', text: 'a ' },
+            { type: 's', options: { '0': 'foo', 'other': 'bar' } },
+            { type: '📝', text: ' b' },
         ]);
     });
 });

@@ -23,8 +23,11 @@ export class MockPlayer extends Player {
     #ping_ = 30;
     #ipAddress_ = null;
     #isNpc_ = null;
+    #version_ = null;
 
     #isServerAdmin_ = false;
+
+    #weapons_ = new Map();
 
     #position_ = new Vector(0, 0, 0);
     #rotation_ = 0;
@@ -33,8 +36,11 @@ export class MockPlayer extends Player {
     #velocity_ = new Vector(0, 0, 0);
 
     #color_ = Color.WHITE;
+    #colorOverrides_ = new Map();
+    #controllable_ = true;
     #health_ = 100.0;
-    #armour_ = 100.0;
+    #armour_ = 0.0;
+    #nameTagInvisible_ = new Set();
     #skin_ = 308;  // San Fierro Paramedic (EMT)
     #specialAction_ = Player.kSpecialActionNone;
     #state_ = Player.kStateOnFoot;
@@ -44,9 +50,10 @@ export class MockPlayer extends Player {
     #fightingStyle_ = Player.kFightingStyleNormal;
     #gravity_ = 0.008;
     #score_ = 0;
-    #team_ = 255;  // NO_TEAM
+    #team_ = Player.kNoTeam;
     #time_ = [0, 0];
     #wantedLevel_ = 0;
+    #weather_ = 0;
 
     #messages_ = [];
     #lastDialogId_ = null;
@@ -56,6 +63,9 @@ export class MockPlayer extends Player {
     #lastDialogMessage_ = null;
     #lastDialogPromise_ = null;
     #lastDialogPromiseResolve_ = null;
+
+    #spectating_ = false;
+    #spectateTarget_ = null;
 
     #streamUrl_ = null;
     #soundId_ = null;
@@ -76,6 +86,7 @@ export class MockPlayer extends Player {
         this.#serial_ = murmur3hash(this.#gpci_ || 'npc');
         this.#ipAddress_ = params.ip || '127.0.0.1';
         this.#isNpc_ = params.npc || false;
+        this.#version_ = params.version || '0.3.7-R4-mock';
 
         this.#lastDialogPromiseResolve_ = null;
         this.#lastDialogPromise_ = new Promise(resolve => {
@@ -93,8 +104,10 @@ export class MockPlayer extends Player {
     get ip() { return this.#ipAddress_; }
 
     get gpci() { return this.#gpci_; }
-  
+
     get serial() { return this.#serial_; }
+
+    get version() { return this.#version_; }
 
     get packetLossPercentage() { return this.#packetLossPercentage_; }
     set packetLossPercentageForTesting(value) { this.#packetLossPercentage_ = value; }
@@ -126,7 +139,6 @@ export class MockPlayer extends Player {
     // Section: Weapons
     // ---------------------------------------------------------------------------------------------
 
-    // Give a player a certain weapon with ammo.
     giveSpawnWeapon(weaponId, multiplier) {
         pawnInvoke('OnGiveSpawnWeapon', 'iii', this.id, weaponId, multiplier);
     }
@@ -137,16 +149,20 @@ export class MockPlayer extends Player {
 
     giveWeapon(weaponId, ammo) {
         pawnInvoke('OnGiveWeapon', 'iii', this.id, weaponId, ammo);
+        this.#weapons_.set(weaponId, ammo);
     }
 
     removeWeapon(weaponId) {
         pawnInvoke('OnRemovePlayerWeapon', 'ii', this.id, weaponId);
+        this.#weapons_.delete(weaponId);
     }
 
-    // Resets all the weapons a player has.
     resetWeapons() {
         pawnInvoke('OnResetPlayerWeapons', 'i', this.id);
+        this.#weapons_.clear();
     }
+
+    getWeaponsForTesting() { return this.#weapons_; }
 
     // ---------------------------------------------------------------------------------------------
     // Section: Physics
@@ -200,10 +216,12 @@ export class MockPlayer extends Player {
     set armour(value) { this.#armour_ = value; }
 
     get color() { return this.#color_; }
-    set color(value) { this.#color_ = value; }
+    set rawColor(value) { this.#color_ = value; this.#colorOverrides_.clear(); }
 
     get controllable() { throw new Error('Unable to get whether the player is controllable.'); }
-    set controllable(value) { /* no need to mock write-only values */ }
+    set controllable(value) { this.#controllable_ = value; }
+
+    get controllableForTesting() { return this.#controllable_; }
 
     get health() { return this.#health_; }
     set health(value) { this.#health_ = value; }
@@ -232,6 +250,15 @@ export class MockPlayer extends Player {
         return defaultPrevented;
     }
 
+    getColorForPlayerForTesting(player) { return this.#colorOverrides_.get(player) ?? this.color; }
+    setColorForPlayer(player, color) { this.#colorOverrides_.set(player, color); }
+
+    isNameTagShownForPlayerForTesting(player) { return !this.#nameTagInvisible_.has(player); }
+    showNameTagForPlayer(player, visible) {
+        visible ? this.#nameTagInvisible_.delete(player)
+                : this.#nameTagInvisible_.add(player);
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Section: Environment
     // ---------------------------------------------------------------------------------------------
@@ -258,7 +285,16 @@ export class MockPlayer extends Player {
     set wantedLevel(value) { this.#wantedLevel_ = value; }
 
     get weather() { throw new Error('Unable to get the current weather for players.'); }
-    set weather(value) { /* no need to mock write-only values */ }
+    set weather(value) { this.#weather_ = value; }
+
+    get weatherForTesting() { return this.#weather_; }
+
+    // ---------------------------------------------------------------------------------------------
+    // Section: Appearance
+    // ---------------------------------------------------------------------------------------------
+
+    attachObjectInternal() {}
+    removeAttachedObjectInternal() {}
 
     // ---------------------------------------------------------------------------------------------
     // Section: Interaction
@@ -290,7 +326,7 @@ export class MockPlayer extends Player {
     getLastDialogAsTable(hasColumns = true) {
         if (!this.#lastDialogMessage_)
             throw new Error('No last message is available to output as a table.');
-        
+
         const lines = this.#lastDialogMessage_.split('\n');
         if (!hasColumns)
             return lines;
@@ -313,7 +349,9 @@ export class MockPlayer extends Player {
     // Sends |message| to the player. It will be stored in the local messages array and can be
     // retrieved through the |messages| getter.
     sendMessage(message, ...args) {
-        if (args.length)
+        if (typeof message === 'function')
+            message = message(null, ...args);
+        else if (args.length)
             message = format(message, ...args);
 
         if (message.length <= 144) // SA-MP-implementation does not send longer messages
@@ -327,6 +365,34 @@ export class MockPlayer extends Player {
     get messages() { return this.#messages_; }
 
     // ---------------------------------------------------------------------------------------------
+    // Section: Spectating
+    // ---------------------------------------------------------------------------------------------
+
+    spectatePlayer(player, mode = Player.kSpectateNormal) {
+        if (!this.#spectating_)
+            throw new Error('The player must be spectating before picking a target.');
+
+        this.#spectateTarget_ = player;
+    }
+
+    spectateVehicle(vehicle, mode = Player.kSpectateNormal) {
+        if (!this.#spectating_)
+            throw new Error('The player must be spectating before picking a target.');
+
+        this.#spectateTarget_ = vehicle;
+    }
+
+    get spectating() { /* this is a read-only value on the server */ }
+    set spectating(value) {
+        this.#spectating_ = !!value;
+        if (!this.#spectating_)
+            this.#spectateTarget_ = null;
+    }
+
+    get spectatingForTesting() { return this.#spectating_; }
+    get spectateTargetForTesting() { return this.#spectateTarget_; }
+
+    // ---------------------------------------------------------------------------------------------
     // Section: Audio
     // ---------------------------------------------------------------------------------------------
 
@@ -337,6 +403,8 @@ export class MockPlayer extends Player {
     stopAudioStream() { this.#streamUrl_ = null; }
 
     get soundIdForTesting() { return this.#soundId_; }
+    set soundIdForTesting(value) { return this.#soundId_ = value; }
+
     get streamUrlForTesting() { return this.#streamUrl_; }
 
     // ---------------------------------------------------------------------------------------------
@@ -448,16 +516,12 @@ export class MockPlayer extends Player {
     // Issues |commandText| as if it had been send by this player. Returns whether the event with
     // which the command had been issued was prevented.
     async issueCommand(commandText) {
-        let defaultPrevented = false;
-
-        await server.commandManager.onPlayerCommandText({
-            preventDefault: () => defaultPrevented = true,
+        return await server.commandManager.onPlayerCommandText({
+            preventDefault: () => undefined,
 
             playerid: this.id,
             cmdtext: commandText
         });
-
-        return defaultPrevented;
     }
 
     // Responds to an upcoming dialog with the given values. The dialog Id that has been shown
@@ -490,6 +554,13 @@ export class MockPlayer extends Player {
     // Triggers an event indicating that the player died.
     die(killerPlayer = null, reason = 0) {
         dispatchEvent('playerdeath', {
+            playerid: this.id,
+            killerid: killerPlayer ? killerPlayer.id
+                                   : Player.kInvalidId,
+            reason: reason
+        });
+
+        dispatchEvent('playerresolveddeath', {
             playerid: this.id,
             killerid: killerPlayer ? killerPlayer.id
                                    : Player.kInvalidId,
