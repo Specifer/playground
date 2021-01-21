@@ -215,7 +215,7 @@ export class DeathMatchManger {
         player.interiorId = location.interiorId;
 
         // Force-update the streamer for the player, based on where they will be spawning.
-        player.updateStreamer(spawnPosition.position, location.world,
+        wait(0).then(() => player.updateStreamer(spawnPosition.position, location.world,
         location.interiorId, /* STREAMER_TYPE_OBJECT= */ 0);
         
         // Do it in a tiny delay to avoid the player receiving an out of bounds message.
