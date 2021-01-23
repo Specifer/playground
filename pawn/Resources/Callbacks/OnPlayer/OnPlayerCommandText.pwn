@@ -928,7 +928,6 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
             if (IsPlayerAdmin(player)) continue;
 
             
-    
             if (Player(player)->isVip())
                 format(playerLevel, sizeof(playerLevel), "VIP");
             if (Player(player)->isDeveloper())
@@ -943,8 +942,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
                 player, playerLevel);
             
             
-
-
+            
             SendClientMessage(playerid, Color::Information, message);
             vipCount++;
             }
