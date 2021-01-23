@@ -213,12 +213,7 @@ export class DeathMatchManger {
         // Make sure this world is set last. TODO: Fix without wait. (e.g. use game API)
         wait(1).then(() => player.virtualWorld = location.world);
         player.interiorId = location.interiorId;
-
-        // Force-update the streamer for the player, based on where they will be spawning.
-        wait(0).then(() => player.updateStreamer(spawnPosition.position, location.world,
-        location.interiorId, /* STREAMER_TYPE_OBJECT= */ 0);
- 
-                     
+            
         // Do it in a tiny delay to avoid the player receiving an out of bounds message.
         wait(0).then(() => player.setWorldBoundaries(location.boundaries[0], location.boundaries[1],
             location.boundaries[2], location.boundaries[3]));
