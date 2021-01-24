@@ -52,8 +52,15 @@ export class DeathMatchCommands {
     async enterDeathMatchZone(zone, player) {
         let decision = null;
 
+    const canEnterDeathmatchZone = this.limits().canEnterDeathmatchZone(player);
+
         // If the |player| is switching to a new deathmatch zone, we allow them to switch when they
-        // haven't been shot recently. Otherwise we need to meet the full minigame criteria.
+        // haven't been shot recently or if they aren't in vehicle. Otherwise we need to meet the full minigame criteria.
+        if (canEnterDeathmatchZone.isApproved()) {
+            player.sendMessage(Message.LIMITS_DEATH_MATCH_ENTRY_VEHICLE, canEnterDeathmatchZone);
+            return;
+            }
+
         if (player.activity === Player.PLAYER_ACTIVITY_JS_DM_ZONE)
             decision = this.limits_().canLeaveDeathmatchZone(player);
         else

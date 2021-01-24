@@ -11,5 +11,8 @@ export const kNoDeathmatchRequirement = 'no-deathmatch';
 // Requires that the player isn't engaged in a minigame of any kind.
 export const kNoMinigameRequirement = 'no-minigame';
 
+// Requires that the player isn't seated in vehicle and is on foot.
+export const kNoVehicleRequirement = 'not-in-vehicle'
+
 // Requires that the player is currently outside, meaning not in any interior.
 export const kOutsideRequirement = 'outside';

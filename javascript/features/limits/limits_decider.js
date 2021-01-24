@@ -65,6 +65,10 @@ export class LimitsDecider extends PlayerEventObserver {
                     decision = this.processMinigameRequirement(player);
                     break;
                 
+                case requirements.kNoVehicleRequirement:
+                    decision = this.processVehicleRequirement(player);
+                    break;    
+                
                 case requirements.kOutsideRequirement:
                     decision = this.processOutsideRequirement(player);
                     break;
@@ -150,6 +154,15 @@ export class LimitsDecider extends PlayerEventObserver {
         return null;
     }
 
+   // Processes if the player is present in vehicle and makes sure if the player isn't in one.
+   // This proces is required to avoid uncertain bugs .
+    processVehicleRequirement(player) {
+        if(player.state == Player.kStateVehicleDriver && Player.kStateVehiclePassenger)
+        return LimitsDecision.createRejection(Message.LIMITS_DEATH_MATCH_ENTRY_VEHICLE);
+
+        return null;
+    }
+    
     // Processes the outside requirement, which verifies that the |player| is not currently in an
     // interior. Certain actions, such as spawning vehicles, often don't make sense there.
     processOutsideRequirement(player) {

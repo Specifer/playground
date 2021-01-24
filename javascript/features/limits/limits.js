@@ -132,6 +132,15 @@ export default class Limits extends Feature {
         });
     }
 
+    // Decides whether the given |player| can enter the Deathmatch Zone.
+    canEnterDeathmatchZone(player) {
+        return this.decider_.decide(player, {
+            requirements: [
+                requirements.kNoVehicleRequirement,
+            ]
+        });
+    }
+
     // ---------------------------------------------------------------------------------------------
 
     // Reports that the given |player| has spawned a vehicle.
