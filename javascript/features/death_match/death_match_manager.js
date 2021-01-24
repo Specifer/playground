@@ -213,7 +213,7 @@ export class DeathMatchManger {
         // Make sure this world is set last. TODO: Fix without wait. (e.g. use game API)
         wait(1).then(() => player.virtualWorld = location.world);
         player.interiorId = location.interiorId;
-            
+
         // Do it in a tiny delay to avoid the player receiving an out of bounds message.
         wait(0).then(() => player.setWorldBoundaries(location.boundaries[0], location.boundaries[1],
             location.boundaries[2], location.boundaries[3]));

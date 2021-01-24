@@ -26,10 +26,6 @@ export class DeathMatchCommands {
 
     // The death match command is being used.
     async onDmCommand(player, zone) {
-        if (player.state !== Player.kStateOnFoot) {
-            player.sendMessage((Message.PLAYER_COMMANDS_SPAWN_WEAPONS_NOT_ON_FOOT));
-            return;
-        }
 
         if(DeathMatchLocation.hasLocation(zone))
             return this.enterDeathMatchZone(zone, player);
