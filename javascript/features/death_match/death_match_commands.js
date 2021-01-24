@@ -25,7 +25,11 @@ export class DeathMatchCommands {
     }
 
     // The death match command is being used.
-    async onDmCommand(player, zone)
+    async onDmCommand(player, zone) {
+        if (player.state !== Player.kStateOnFoot) {
+            player.sendMessage((Message.PLAYER_COMMANDS_SPAWN_WEAPONS_NOT_ON_FOOT));
+            return;
+        }
 
         if(DeathMatchLocation.hasLocation(zone))
             return this.enterDeathMatchZone(zone, player);
@@ -48,12 +52,6 @@ export class DeathMatchCommands {
     async enterDeathMatchZone(zone, player) {
         let decision = null;
 
-         {
-        if (player.state !== Player.kStateOnFoot) {
-            player.sendMessage((Message.PLAYER_COMMANDS_SPAWN_WEAPONS_NOT_ON_FOOT));
-            return;
-        }
-             
         // If the |player| is switching to a new deathmatch zone, we allow them to switch when they
         // haven't been shot recently. Otherwise we need to meet the full minigame criteria.
         if (player.activity === Player.PLAYER_ACTIVITY_JS_DM_ZONE)
