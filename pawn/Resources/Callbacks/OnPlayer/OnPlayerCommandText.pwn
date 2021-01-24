@@ -868,7 +868,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
             if (Player(player)->isDeveloper())
                 format(playerLevel, sizeof(playerLevel), "Developer");      
             if (Player(player)->isAdministrator() && !Player(player)->isManagement())
-                format(playerLevel, sizeof(playerLevel), "Administrator");  
+                format(playerLevel, sizeof(playerLevel), "Administrator");
             else if (Player(player)->isManagement())
                 format(playerLevel, sizeof(playerLevel), "Manager");
 
@@ -877,8 +877,8 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
                 player, playerLevel);
 
             // If the user was temp'd, show admins who temp'd the player.
-            {     
-                if (Player(playerid)->isAdministrator() && Player(playerid)->isManagement()) 
+                 
+                if (Player(playerid)->isAdministrator()) 
                     {
                   if (tempLevel[player] == 1 || tempLevel[player] == 2) 
                     format(message, sizeof(message), " %s {CCCCCC}(temp'd by %s){FFFFFF} (Id:%d) - {FF8E02}%s",
@@ -886,10 +886,10 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
                     }
                 else {
                     if (tempLevel[player] == 2) 
-                    format(message, sizeof(message), " %s (Id:%d) - {FF8E02}Temp.Admin",
+                    format(message, sizeof(message), " %s (Id:%d) - {FF8E02}Temporary Administrator",
                         Player(player)->nicknameString(), player);
                      }    
-            }
+            
 
             // If a player is undercover, show this to other admins.
             if (UndercoverAdministrator(player)->isUndercoverAdministrator()) {
