@@ -350,6 +350,7 @@
   "KILLTIME_INVALID_WEAPON": "{DC143C}Killtime{FFFFFF}: Sorry, this is not a valid weapon.",
   "KILLTIME_ENJOY_PRIZE": "Enjoy your prize of $%d!",
 
+  "LIMITS_DEATH_MATCH_ENTRY_VEHICLE": "@error Sorry, you can't participate in deathmatch because you are seated inside vehicle.",
   "LIMITS_DEATHMATCH_DAMAGE_ISSUED": "you've recently issued damage",
   "LIMITS_DEATHMATCH_DAMAGE_TAKEN": "you've recently taken damage",
   "LIMITS_DEATHMATCH_WEAPON_FIRED": "you've recently fired your weapon",
