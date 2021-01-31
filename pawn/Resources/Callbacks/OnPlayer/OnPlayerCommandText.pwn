@@ -863,10 +863,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
             if (!Player(player)->isAdministrator()) continue;
             if (IsPlayerAdmin(player)) continue;
 
-            
-    
-            if (Player(player)->isDeveloper())
-                format(playerLevel, sizeof(playerLevel), "Developer");      
+        
             if (Player(player)->isAdministrator() && !Player(player)->isManagement())
                 format(playerLevel, sizeof(playerLevel), "Administrator");
             else if (Player(player)->isManagement())
@@ -876,8 +873,7 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
             format(message, sizeof(message), " %s (Id:%d) - {FF8E02}%s", Player(player)->nicknameString(),
                 player, playerLevel);
 
-            // If the user was temp'd, show admins who temp'd the player.
-                 
+            // If the user was temp'd, show admins who temp'd the player. 
                 if (Player(playerid)->isAdministrator()) 
                     {
                   if (tempLevel[player] == 1 || tempLevel[player] == 2) 
@@ -922,24 +918,24 @@ public OnPlayerCommandText(playerid, cmdtext[]) {
         SendClientMessage(playerid, COLOR_ORANGE, "List of VIPs online in Las Venturas Playground");
 
         new message[128], vipCount = 0, playerLevel[30];
-        for (new player = 0; player <= PlayerManager->highestPlayerId(); player++) {
-            if (!Player(player)->isConnected()) continue;
-            if (!Player(player)->isVip()) continue;
-            if (IsPlayerAdmin(player)) continue;
+        for (new playerId = 0; playerId <= PlayerManager->highestPlayerId(); playerId++) {
+            if (!Player(playerId)->isConnected()) continue;
+            if (!Player(playerId)->isVip()) continue;
+            if (IsPlayerAdmin(playerId)) continue;
 
             
-            if (Player(player)->isVip())
+            if (Player(playerId)->isVip())
                 format(playerLevel, sizeof(playerLevel), "VIP");
-            if (Player(player)->isDeveloper())
-                format(playerLevel, sizeof(playerLevel), "VIP / Developer");          
-            if (Player(player)->isAdministrator() && !Player(player)->isManagement())
+            if (Player(playerId)->isDeveloper())
+                format(playerLevel, sizeof(playerLevel), "Developer");          
+            if (Player(playerId)->isAdministrator() && !Player(player)->isManagement())
                 format(playerLevel, sizeof(playerLevel), "VIP / Administrator");  
-            if (Player(player)->isManagement())
+            if (Player(playerId)->isManagement())
                 format(playerLevel, sizeof(playerLevel), "Manager");    
             
             // Format the message for any general player.
             format(message, sizeof(message), " %s (Id:%d) - {FFFF00}%s", Player(player)->nicknameString(),
-                player, playerLevel);
+                playerId, playerLevel);
             
             
             
